@@ -1,0 +1,93 @@
+"use client";
+import Link from "next/link";
+import { I } from "@/components/Icons";
+
+export default function SuccessPage() {
+  const orderNo = "F500-2481";
+  return (
+    <div className="app success">
+      <div className="s-bg glowbg" />
+
+      <div className="s-center">
+        <div className="check-wrap">
+          <span className="ring r1" />
+          <span className="ring r2" />
+          <div className="check-circle">
+            <I.check style={{ width: 46, height: 46 }} />
+          </div>
+        </div>
+
+        <h1 className="display reveal d1">تم استلام طلبك! 🎉</h1>
+        <p className="s-sub muted reveal d2">
+          يجهّز مطبخ فايف هاندرد طلبك الآن بكل حب.<br />نراك على ألذّ لقمة.
+        </p>
+
+        <div className="order-card glass reveal d3">
+          <div className="oc-row">
+            <span className="muted">رقم الطلب</span>
+            <b className="price">{orderNo}</b>
+          </div>
+          <div className="oc-divider" />
+          <div className="oc-status">
+            <Step done label="تم التأكيد" icon="✅" />
+            <Line done />
+            <Step active label="قيد التحضير" icon="👨‍🍳" />
+            <Line />
+            <Step label="في الطريق" icon="🛵" />
+          </div>
+          <div className="eta">
+            <I.clock /> يصل خلال <b><span className="ltr">25–35</span> دقيقة</b>
+          </div>
+        </div>
+
+        <div className="s-actions reveal d4">
+          <Link href="/" className="btn btn-primary btn-block">العودة للرئيسية</Link>
+          <button className="btn btn-ghost btn-block" style={{ marginTop: 10 }}>تتبّع الطلب</button>
+        </div>
+      </div>
+
+      <style jsx>{`
+        .success { padding-bottom: 30px; min-height: 100%; display: flex; flex-direction: column; position: relative; overflow: hidden; background: radial-gradient(circle at 50% 22%, #1a1226, #0b0b0d 60%); }
+        .s-bg { position: absolute; top: -40px; left: 50%; transform: translateX(-50%); width: 340px; height: 340px; border-radius: 50%; background: radial-gradient(circle, rgba(124,77,190,0.4), transparent 60%); filter: blur(30px); }
+        .s-center { position: relative; z-index: 2; flex: 1; display: flex; flex-direction: column; align-items: center; text-align: center; padding: 30px 26px 0; }
+        .check-wrap { position: relative; width: 120px; height: 120px; display: flex; align-items: center; justify-content: center; margin-bottom: 30px; }
+        .check-circle { width: 96px; height: 96px; border-radius: 50%; background: linear-gradient(140deg, #46c37b, #2fa862); color: #fff; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 60px -6px rgba(70,195,123,0.7); animation: popIn 0.6s cubic-bezier(0.22,1,0.36,1) both; }
+        .ring { position: absolute; width: 96px; height: 96px; border-radius: 50%; border: 2px solid rgba(70,195,123,0.5); }
+        .r1 { animation: ring 1.8s ease-out infinite; }
+        .r2 { animation: ring 1.8s ease-out infinite 0.6s; }
+        h1 { font-size: 27px; font-weight: 900; }
+        .s-sub { font-size: 14.5px; line-height: 1.7; margin-top: 12px; }
+        .order-card { width: 100%; border-radius: 24px; padding: 20px; margin-top: 28px; }
+        .oc-row { display: flex; justify-content: space-between; align-items: center; }
+        .oc-row b { font-size: 18px; }
+        .oc-divider { height: 1px; background: var(--hairline); margin: 16px 0; }
+        .oc-status { display: flex; align-items: flex-start; justify-content: space-between; }
+        .eta { display: flex; align-items: center; justify-content: center; gap: 7px; margin-top: 20px; font-size: 13.5px; font-weight: 600; color: var(--text-2); background: var(--surface); border: 1px solid var(--hairline); padding: 11px; border-radius: 15px; }
+        .eta b { color: var(--text); }
+        .s-actions { width: 100%; margin-top: auto; padding-top: 30px; }
+      `}</style>
+    </div>
+  );
+}
+
+function Step({ label, icon, done, active }) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, flex: "0 0 auto", width: 70 }}>
+      <div
+        style={{
+          width: 46, height: 46, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20,
+          background: done ? "linear-gradient(140deg,#46c37b,#2fa862)" : active ? "linear-gradient(140deg,var(--orange-bright),var(--orange))" : "var(--surface)",
+          border: done || active ? "none" : "1px solid var(--hairline)",
+          boxShadow: active ? "var(--glow-orange)" : "none",
+        }}
+      >
+        {icon}
+      </div>
+      <span style={{ fontSize: 11, fontWeight: 700, color: done || active ? "var(--text)" : "var(--text-3)" }}>{label}</span>
+    </div>
+  );
+}
+
+function Line({ done }) {
+  return <div style={{ flex: 1, height: 2, marginTop: 22, background: done ? "#2fa862" : "var(--hairline)", borderRadius: 2 }} />;
+}
