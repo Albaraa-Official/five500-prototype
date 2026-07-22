@@ -43,12 +43,20 @@
 - **Prisma + serverless:** كل استدعاء دالة يفتح اتصالاً؛ تحت الضغط تُستنزف اتصالات Postgres. **الحل الإلزامي:** استخدم **رابط Postgres المُجمّع (pooled)** — Vercel Postgres يوفّره تلقائياً، أو Neon pooling، أو Prisma Accelerate. بدونه اختبار الـ200 متزامن قد يفشل على Vercel رغم نجاحه محلياً.
 - حد المعدّل يحتاج مخزناً مشتركاً (Redis).
 
-## البنود المفتوحة (حسب الأولوية)
+## أُنجز بعد المراجعة الأولى (2026-07-22)
+- ✅ لوحة مطبخ/إدارة + آلة حالة الطلب (paid→preparing→ready→completed).
+- ✅ تتبّع حالة حيّ في صفحة النجاح (polling).
+- ✅ محوّلات OTP حقيقية (Unifonic/Msegat) خلف env.
+- ✅ تكامل Moyasar للتحقق من جهة السيرفر + مطابقة المبلغ في webhook.
+- ✅ فحص أسرار fail-fast عند الإقلاع (lib/env.js).
+- ✅ CI (GitHub Actions): migrate + اختبارات + build مع Postgres.
+
+## البنود المفتوحة (حسب الأولوية) — تحتاج حساباتك أو قرارك
 1. 🔴 رابط Postgres مُجمّع على Vercel (قبل أي حمل حقيقي).
-2. 🔴 MOYASAR_WEBHOOK_SECRET + SESSION_SECRET.
-3. 🟠 مزود OTP حقيقي + مفاتيح Moyasar.
-4. 🟠 Redis لحد المعدّل.
-5. 🟡 next/image، ترقية Next 16، لوحة إدارة، ZATCA، واجهة متجاوبة كلياً.
+2. 🔴 ضبط الأسرار في Vercel: SESSION_SECRET, ADMIN_PASSCODE, (وMOYASAR_WEBHOOK_SECRET عند التفعيل).
+3. 🟠 مفاتيح Moyasar + مزود OTP الحقيقي (الكود جاهز).
+4. 🟠 Redis (Upstash) لحد المعدّل عبر نسخ serverless.
+5. 🟡 next/image + واجهة متجاوبة كلياً (يُنجزان معاً) · ترقية Next 16 · ZATCA.
 
 ## الخلاصة
 الأساس **متين وآمن ومختبَر تحت الضغط**. جاهز للنشر على Vercel بمجرد ضبط: Postgres مُجمّع + الأسرار + مزودات OTP/الدفع الحقيقية.

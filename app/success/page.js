@@ -14,10 +14,22 @@ function SuccessInner() {
 
   useEffect(() => {
     if (!orderId) return;
-    fetch(`/api/orders/${orderId}`)
-      .then((r) => r.json())
-      .then((d) => d.order && setOrder(d.order))
-      .catch(() => {});
+    let alive = true;
+    const poll = () =>
+      fetch(`/api/orders/${orderId}`)
+        .then((r) => r.json())
+        .then((d) => alive && d.order && setOrder(d.order))
+        .catch(() => {});
+    poll();
+    // تتبّع حيّ: نحدّث الحالة كل 8 ثوانٍ حتى يكتمل الطلب
+    const t = setInterval(() => {
+      if (!alive) return;
+      poll();
+    }, 8000);
+    return () => {
+      alive = false;
+      clearInterval(t);
+    };
   }, [orderId]);
 
   // رقم طلب مختصر مقروء من معرّف cuid

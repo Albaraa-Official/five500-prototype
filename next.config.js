@@ -1,4 +1,7 @@
 /** @type {import('next').NextConfig} */
+const { validateEnv } = require("./lib/env");
+validateEnv(); // يفشل بسرعة لو نقص سر حرج في الإنتاج
+
 const securityHeaders = [
   { key: "X-Frame-Options", value: "SAMEORIGIN" },
   { key: "X-Content-Type-Options", value: "nosniff" },
