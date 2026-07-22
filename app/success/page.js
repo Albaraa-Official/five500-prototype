@@ -1,13 +1,32 @@
 "use client";
+import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { I } from "@/components/Icons";
+import { formatSAR } from "@/lib/money";
 
-export default function SuccessPage() {
-  const orderNo = "F500-2481";
+const STATUS_STEP = { paid: 0, preparing: 1, ready: 2, completed: 2 };
+
+function SuccessInner() {
+  const sp = useSearchParams();
+  const orderId = sp.get("order");
+  const [order, setOrder] = useState(null);
+
+  useEffect(() => {
+    if (!orderId) return;
+    fetch(`/api/orders/${orderId}`)
+      .then((r) => r.json())
+      .then((d) => d.order && setOrder(d.order))
+      .catch(() => {});
+  }, [orderId]);
+
+  // رقم طلب مختصر مقروء من معرّف cuid
+  const orderNo = order ? `F500-${order.id.slice(-6).toUpperCase()}` : "…";
+  const step = order ? (STATUS_STEP[order.status] ?? 0) : 0;
+
   return (
     <div className="app success">
       <div className="s-bg glowbg" />
-
       <div className="s-center">
         <div className="check-wrap">
           <span className="ring r1" />
@@ -27,22 +46,28 @@ export default function SuccessPage() {
             <span className="muted">رقم الطلب</span>
             <b className="price">{orderNo}</b>
           </div>
+          {order && (
+            <div className="oc-row" style={{ marginTop: 8 }}>
+              <span className="muted">الإجمالي</span>
+              <b className="price">{formatSAR(order.totalHalalas)}</b>
+            </div>
+          )}
           <div className="oc-divider" />
           <div className="oc-status">
             <Step done label="تم التأكيد" icon="✅" />
-            <Line done />
-            <Step active label="قيد التحضير" icon="👨‍🍳" />
-            <Line />
-            <Step label="في الطريق" icon="🛵" />
+            <Line done={step >= 1} />
+            <Step done={step >= 1} active={step === 1} label="قيد التحضير" icon="👨‍🍳" />
+            <Line done={step >= 2} />
+            <Step done={step >= 2} active={step === 2} label="جاهز للاستلام" icon="🛍️" />
           </div>
           <div className="eta">
-            <I.clock /> يصل خلال <b><span className="ltr">25–35</span> دقيقة</b>
+            <I.clock /> جاهز خلال <b><span className="ltr">15–25</span> دقيقة</b>
           </div>
         </div>
 
         <div className="s-actions reveal d4">
           <Link href="/" className="btn btn-primary btn-block">العودة للرئيسية</Link>
-          <button className="btn btn-ghost btn-block" style={{ marginTop: 10 }}>تتبّع الطلب</button>
+          <Link href="/account" className="btn btn-ghost btn-block" style={{ marginTop: 10 }}>طلباتي</Link>
         </div>
       </div>
 
@@ -90,4 +115,12 @@ function Step({ label, icon, done, active }) {
 
 function Line({ done }) {
   return <div style={{ flex: 1, height: 2, marginTop: 22, background: done ? "#2fa862" : "var(--hairline)", borderRadius: 2 }} />;
+}
+
+export default function SuccessPage() {
+  return (
+    <Suspense fallback={<div className="app success" />}>
+      <SuccessInner />
+    </Suspense>
+  );
 }

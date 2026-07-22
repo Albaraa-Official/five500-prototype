@@ -1,6 +1,7 @@
 import "./globals.css";
 import { Tajawal, Rubik } from "next/font/google";
 import { CartProvider } from "@/context/CartContext";
+import { CatalogProvider } from "@/context/CatalogContext";
 import Splash from "@/components/Splash";
 import { Header } from "@/components/Chrome";
 import AddToast from "@/components/AddToast";
@@ -36,6 +37,7 @@ export default function RootLayout({ children }) {
     <html lang="ar" dir="rtl" className={`${tajawal.variable} ${rubik.variable}`}>
       <body>
         <CartProvider>
+         <CatalogProvider>
           <div className="stage">
             <div className="phone">
               <div className="notch" />
@@ -46,6 +48,7 @@ export default function RootLayout({ children }) {
               <div className="grain" aria-hidden />
             </div>
           </div>
+         </CatalogProvider>
         </CartProvider>
       </body>
     </html>

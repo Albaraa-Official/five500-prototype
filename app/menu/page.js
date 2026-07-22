@@ -3,13 +3,15 @@ import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { GridCard } from "@/components/ProductCard";
 import { I } from "@/components/Icons";
-import { categories, products } from "@/data/menu";
+import { categories } from "@/data/menu";
+import { useCatalog } from "@/context/CatalogContext";
 
 function MenuInner() {
   const sp = useSearchParams();
   const initial = sp.get("cat") || "all";
   const [cat, setCat] = useState(initial);
   const [q, setQ] = useState("");
+  const { products } = useCatalog();
 
   let list = cat === "all" ? products : products.filter((p) => p.cat === cat);
   if (q.trim()) list = list.filter((p) => p.name.includes(q.trim()));

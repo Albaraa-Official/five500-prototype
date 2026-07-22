@@ -7,14 +7,16 @@ import { money } from "@/data/menu";
 
 export default function CheckoutPage() {
   const router = useRouter();
-  const { subtotal, count, clear } = useCart();
+  const { items, subtotal, count, clear } = useCart();
   const [plateLetters, setPlateLetters] = useState("");
   const [plateNumbers, setPlateNumbers] = useState("");
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [pay, setPay] = useState("apple");
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
 
+  // ملاحظة: هذه الأرقام للعرض فقط — الإجمالي المعتمد يُحسب في السيرفر.
   const tax = Math.round(subtotal * 0.15);
   const total = subtotal + tax;
 
@@ -30,13 +32,34 @@ export default function CheckoutPage() {
     setPlateNumbers(v);
   };
 
-  const submit = () => {
-    if (!name.trim() || !phone.trim()) return;
+  const submit = async () => {
+    if (!name.trim() || !phone.trim() || items.length === 0) return;
     setSubmitting(true);
-    setTimeout(() => {
-      clear();
-      router.push("/success");
-    }, 900);
+    setError("");
+    try {
+      const plate = [plateLetters, plateNumbers].filter(Boolean).join(" ").trim();
+      const res = await fetch("/api/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          items: items.map((i) => ({ productId: i.id, size: i.size, qty: i.qty })),
+          customerName: name.trim(),
+          customerPhone: phone.trim(),
+          plate: plate || null,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data?.message || "تعذّر إنشاء الطلب. تحقّق من البيانات وحاول مجدداً.");
+        setSubmitting(false);
+        return;
+      }
+      // إلى الدفع مع معرّف الطلب — الإجمالي المعتمد يأتي من السيرفر هناك.
+      router.push(`/payment?order=${data.orderId}`);
+    } catch (e) {
+      setError("تعذّر الاتصال بالخادم. حاول مجدداً.");
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -134,6 +157,15 @@ export default function CheckoutPage() {
           <Row label="الإجمالي" value={money(total)} big />
         </div>
       </div>
+
+      {/* Error */}
+      {error && (
+        <div className="pad">
+          <div style={{ background: "rgba(224,82,82,0.12)", color: "#e05252", border: "1px solid rgba(224,82,82,0.3)", borderRadius: 14, padding: "12px 16px", fontSize: 13.5, fontWeight: 700 }}>
+            ⚠️ {error}
+          </div>
+        </div>
+      )}
 
       {/* Submit */}
       <div className="pad" style={{ marginTop: 10 }}>

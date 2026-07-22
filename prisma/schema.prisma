@@ -1,0 +1,107 @@
+// FIVE 500 — Prisma schema
+// ملاحظة: التطوير المحلي على SQLite. للإنتاج: غيّر provider إلى "postgresql".
+// كل المبالغ المالية بالهللات (عدد صحيح) لتفادي أخطاء الفاصلة العائمة.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Branch {
+  id        String   @id @default(cuid())
+  name      String
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  orders    Order[]
+}
+
+model Product {
+  id         String         @id
+  name       String
+  category   String
+  img        String?
+  emoji      String?
+  calories   Int?
+  tag        String?
+  description String?
+  active     Boolean        @default(true)
+  createdAt  DateTime       @default(now())
+  prices     ProductPrice[]
+  orderItems OrderItem[]
+}
+
+model ProductPrice {
+  id           String  @id @default(cuid())
+  productId    String
+  size         String  // "reg" | "large"
+  priceHalalas Int
+  product      Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, size])
+}
+
+model User {
+  id        String   @id @default(cuid())
+  phoneE164 String   @unique
+  name      String?
+  createdAt DateTime @default(now())
+  orders    Order[]
+}
+
+model OtpCode {
+  id        String   @id @default(cuid())
+  phoneE164 String
+  codeHash  String
+  expiresAt DateTime
+  attempts  Int      @default(0)
+  consumed  Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([phoneE164])
+}
+
+model Order {
+  id             String      @id @default(cuid())
+  userId         String?
+  branchId       String
+  status         String      @default("pending_payment")
+  // pending_payment | paid | preparing | ready | completed | cancelled | payment_failed
+  subtotalHalalas Int
+  vatHalalas      Int
+  totalHalalas    Int
+  customerName   String?
+  customerPhone  String?
+  plate          String?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  user           User?       @relation(fields: [userId], references: [id])
+  branch         Branch      @relation(fields: [branchId], references: [id])
+  items          OrderItem[]
+  payment        Payment?
+}
+
+model OrderItem {
+  id              String  @id @default(cuid())
+  orderId         String
+  productId       String
+  size            String
+  qty             Int
+  unitPriceHalalas Int    // snapshot السعر وقت الطلب
+  order           Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product         Product @relation(fields: [productId], references: [id])
+}
+
+model Payment {
+  id            String   @id @default(cuid())
+  orderId       String   @unique
+  provider      String   @default("moyasar")
+  providerRef   String?
+  status        String   @default("initiated") // initiated | paid | failed
+  amountHalalas Int
+  createdAt     DateTime @default(now())
+  order         Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+}

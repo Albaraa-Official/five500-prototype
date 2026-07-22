@@ -1,38 +1,76 @@
 "use client";
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { I } from "@/components/Icons";
 
 const rows = [
   { icon: "🧾", label: "طلباتي", sub: "تتبّع وأعد الطلب" },
   { icon: "📍", label: "عناويني", sub: "المنزل · العمل" },
-  { icon: "❤️", label: "المفضلة", sub: "12 صنف محفوظ" },
+  { icon: "❤️", label: "المفضلة", sub: "أصنافك المحفوظة" },
   { icon: "💳", label: "طرق الدفع", sub: "Apple Pay · مدى" },
-  { icon: "🎁", label: "نقاط المكافآت", sub: "480 نقطة" },
+  { icon: "🎁", label: "نقاط المكافآت", sub: "قريباً" },
   { icon: "⚙️", label: "الإعدادات", sub: "اللغة · الإشعارات" },
 ];
 
 export default function AccountPage() {
+  const router = useRouter();
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/auth/me")
+      .then((r) => r.json())
+      .then((d) => setUser(d.user))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  const logout = async () => {
+    await fetch("/api/auth/logout", { method: "POST" });
+    setUser(null);
+  };
+
+  // اسم العرض والحرف الأول للأفاتار
+  const displayName = user?.name || (user ? "ضيف فايف هاندرد" : "زائر");
+  const avatarChar = displayName.trim().charAt(0) || "ض";
+
   return (
     <div className="app">
       <header className="pad reveal" style={{ paddingTop: 6 }}>
         <h1 className="display" style={{ fontSize: 28, fontWeight: 900 }}>حسابي</h1>
       </header>
 
-      <div className="pad">
-        <div className="profile card reveal d1">
-          <div className="avatar">ض</div>
-          <div className="p-info">
-            <b>ضيف فايف هاندرد</b>
-            <span className="muted ltr">+966 55 692 7406</span>
+      {!loading && !user ? (
+        // غير مسجّل — دعوة لتسجيل الدخول
+        <div className="pad">
+          <div className="profile card reveal d1" style={{ flexDirection: "column", alignItems: "stretch", gap: 14, textAlign: "center", padding: 24 }}>
+            <div className="avatar" style={{ margin: "0 auto" }}>👋</div>
+            <b style={{ fontSize: 17 }}>سجّل دخولك</b>
+            <span className="muted" style={{ fontSize: 13.5 }}>لمتابعة طلباتك وحفظ مفضّلاتك</span>
+            <Link href="/login?next=/account" className="btn btn-primary btn-block" style={{ marginTop: 6 }}>تسجيل الدخول بالجوال</Link>
           </div>
-          <div className="tier">🏆 ذهبي</div>
         </div>
-      </div>
+      ) : (
+        <>
+          <div className="pad">
+            <div className="profile card reveal d1">
+              <div className="avatar">{avatarChar}</div>
+              <div className="p-info">
+                <b>{displayName}</b>
+                <span className="muted ltr">{user?.phone || "—"}</span>
+              </div>
+              {user && <div className="tier">🏆 عضو</div>}
+            </div>
+          </div>
 
-      <div className="pad stats reveal d2">
-        <Stat n="24" l="طلب" />
-        <Stat n="480" l="نقطة" />
-        <Stat n="12" l="مفضلة" />
-      </div>
+          <div className="pad stats reveal d2">
+            <Stat n={user ? String(user.orders ?? 0) : "0"} l="طلب" />
+            <Stat n="—" l="نقطة" />
+            <Stat n="—" l="مفضلة" />
+          </div>
+        </>
+      )}
 
       <div className="pad rows">
         {rows.map((r, i) => (
@@ -46,6 +84,12 @@ export default function AccountPage() {
           </div>
         ))}
       </div>
+
+      {user && (
+        <div className="pad">
+          <button className="btn btn-ghost btn-block" onClick={logout} style={{ color: "#e05252" }}>تسجيل الخروج</button>
+        </div>
+      )}
 
       <div className="pad" style={{ marginTop: 8 }}>
         <div className="brandline muted reveal">

@@ -2,9 +2,11 @@
 import Link from "next/link";
 import { FeatureCard, GridCard } from "@/components/ProductCard";
 import { I } from "@/components/Icons";
-import { categories, products } from "@/data/menu";
+import { categories } from "@/data/menu";
+import { useCatalog } from "@/context/CatalogContext";
 
 export default function Home() {
+  const { products } = useCatalog();
   const featured = products.filter((p) => p.hero || p.tag === "الأكثر طلباً" || p.tag === "المفضّل").slice(0, 5);
   const list = products.filter((p) => ["beef", "chicken"].includes(p.cat)).slice(0, 4);
 

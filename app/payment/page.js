@@ -1,32 +1,85 @@
 "use client";
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { I } from "@/components/Icons";
 import { useCart } from "@/context/CartContext";
-import { money } from "@/data/menu";
+import { formatSAR } from "@/lib/money";
 
-export default function PaymentPage() {
+function PaymentInner() {
   const router = useRouter();
-  const { subtotal, clear } = useCart();
+  const sp = useSearchParams();
+  const orderId = sp.get("order");
+  const { clear } = useCart();
+
+  const [order, setOrder] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [method, setMethod] = useState("apple");
   const [paying, setPaying] = useState(false);
-  const [delivery, setDelivery] = useState(8);
+  const [error, setError] = useState("");
 
+  // تحميل الطلب المعتمد من السيرفر (الإجمالي الموثوق)
   useEffect(() => {
-    try {
-      setDelivery(localStorage.getItem("f500-mode") === "pickup" ? 0 : 8);
-    } catch (e) {}
-  }, []);
+    if (!orderId) {
+      setError("لا يوجد طلب. ابدأ من السلة.");
+      setLoading(false);
+      return;
+    }
+    fetch(`/api/orders/${orderId}`)
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.order) setOrder(d.order);
+        else setError("تعذّر العثور على الطلب.");
+      })
+      .catch(() => setError("تعذّر تحميل الطلب."))
+      .finally(() => setLoading(false));
+  }, [orderId]);
 
-  const tax = Math.round(subtotal * 0.15);
-  const total = subtotal + delivery + tax;
+  const totalHalalas = order?.totalHalalas ?? 0;
 
-  const pay = () => {
+  const pay = async () => {
     setPaying(true);
-    setTimeout(() => {
+    setError("");
+    try {
+      // 1) إنشاء الدفعة (المبلغ يأتي من السيرفر حسب الطلب)
+      const cRes = await fetch("/api/payments/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderId }),
+      });
+      const cData = await cRes.json();
+      if (!cRes.ok) {
+        setError("تعذّر بدء الدفع.");
+        setPaying(false);
+        return;
+      }
+
+      // 2) وضع mock (لا يوجد Moyasar بعد): نحاكي تأكيد البوابة عبر منطق التسوية نفسه.
+      if (cData.mode === "mock") {
+        const mRes = await fetch("/api/payments/mock-confirm", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ paymentId: cData.paymentId, outcome: "paid" }),
+        });
+        const mData = await mRes.json();
+        if (!mData.ok) {
+          setError("فشل تأكيد الدفع.");
+          setPaying(false);
+          return;
+        }
+      } else {
+        // TODO(moyasar): توجيه المستخدم لواجهة Moyasar المستضافة؛ التأكيد يصل عبر webhook.
+        setError("تكامل Moyasar لم يُفعّل بعد.");
+        setPaying(false);
+        return;
+      }
+
+      // 3) نجاح — نفرّغ السلة ونعرض صفحة الطلب
       clear();
-      router.push("/success");
-    }, 1700);
+      router.push(`/success?order=${orderId}`);
+    } catch (e) {
+      setError("تعذّر الاتصال بالخادم.");
+      setPaying(false);
+    }
   };
 
   return (
@@ -48,7 +101,7 @@ export default function PaymentPage() {
           <div className="pc-bottom">
             <div>
               <span className="pc-lbl">حامل البطاقة</span>
-              <b>FIVE 500 GUEST</b>
+              <b>{order?.customerName || "FIVE 500 GUEST"}</b>
             </div>
             <div>
               <span className="pc-lbl">تنتهي</span>
@@ -64,27 +117,39 @@ export default function PaymentPage() {
         <div className="methods">
           <Method id="apple" method={method} setMethod={setMethod} icon={<I.apple />} title="Apple Pay" sub="ادفع بلمسة عبر آيفون" badge="الأسرع" />
           <Method id="card" method={method} setMethod={setMethod} icon={<I.card />} title="بطاقة مدى / ائتمانية" sub="Visa · Mastercard · مدى" />
-          <Method id="cash" method={method} setMethod={setMethod} icon={<I.cash />} title="الدفع نقداً" sub="عند الاستلام أو التوصيل" />
+          <Method id="cash" method={method} setMethod={setMethod} icon={<I.cash />} title="الدفع نقداً" sub="عند الاستلام" />
         </div>
       </div>
 
+      {error && (
+        <div className="pad">
+          <div style={{ background: "rgba(224,82,82,0.12)", color: "#e05252", border: "1px solid rgba(224,82,82,0.3)", borderRadius: 14, padding: "12px 16px", fontSize: 13.5, fontWeight: 700 }}>
+            ⚠️ {error}
+          </div>
+        </div>
+      )}
+
       <div className="pad note muted reveal d4">
-        🔒 هذا نموذج عرض — لا تتم أي عملية دفع فعلية.
+        🔒 نموذج عرض — الدفع محاكى حتى تفعيل Moyasar. الإجمالي محسوب في الخادم.
       </div>
 
       {/* Pay bar */}
       <div className="checkoutbar glass">
         <div className="cb-total">
           <span className="muted">الإجمالي</span>
-          <b className="price">{money(total)}</b>
+          <b className="price">{loading ? "…" : formatSAR(totalHalalas)}</b>
         </div>
-        <button className={`cb-btn ${method === "apple" ? "apple" : ""}`} onClick={pay} disabled={paying}>
+        <button
+          className={`cb-btn ${method === "apple" ? "apple" : ""}`}
+          onClick={pay}
+          disabled={paying || loading || !order}
+        >
           {paying ? (
             <span className="spinner" />
           ) : method === "apple" ? (
             <><I.apple /> ادفع عبر Apple Pay</>
           ) : (
-            <>تأكيد الدفع · {money(total)}</>
+            <>تأكيد الدفع · {formatSAR(totalHalalas)}</>
           )}
         </button>
       </div>
@@ -93,7 +158,6 @@ export default function PaymentPage() {
         .c-head { display: flex; align-items: center; gap: 14px; padding-top: 6px; }
         .round { width: 44px; height: 44px; border-radius: 14px; display: flex; align-items: center; justify-content: center; }
         .c-head h1 { font-size: 24px; font-weight: 900; }
-
         .paycard { position: relative; height: 200px; border-radius: 26px; margin-top: 12px; padding: 22px; overflow: hidden; background: linear-gradient(135deg, #2a1c3d 0%, #191225 45%, #0f0d15 100%); border: 1px solid var(--hairline-strong); box-shadow: var(--glow-purple), var(--shadow-card); display: flex; flex-direction: column; justify-content: space-between; }
         .pc-glow { position: absolute; width: 220px; height: 220px; border-radius: 50%; background: radial-gradient(circle, rgba(236,106,44,0.4), transparent 60%); filter: blur(24px); top: -70px; right: -50px; }
         .pc-top { display: flex; justify-content: space-between; align-items: center; z-index: 2; }
@@ -103,11 +167,9 @@ export default function PaymentPage() {
         .pc-bottom { display: flex; justify-content: space-between; z-index: 2; }
         .pc-lbl { display: block; font-size: 10px; color: var(--text-3); margin-bottom: 3px; }
         .pc-bottom b { font-size: 14px; font-weight: 700; letter-spacing: 0.5px; }
-
         .block-head { margin: 26px 0 12px; font-size: 15px; font-weight: 800; }
         .methods { display: flex; flex-direction: column; gap: 12px; }
         .note { text-align: center; font-size: 12.5px; font-weight: 600; margin-top: 18px; }
-
         .checkoutbar { position: absolute; bottom: 18px; left: 50%; transform: translateX(-50%); width: calc(100% - 32px); max-width: 404px; height: 74px; border-radius: 24px; display: flex; align-items: center; gap: 12px; padding: 0 12px 0 18px; z-index: 60; box-shadow: var(--shadow-soft); }
         .cb-total { display: flex; flex-direction: column; line-height: 1.25; }
         .cb-total .muted { font-size: 11px; }
@@ -115,7 +177,7 @@ export default function PaymentPage() {
         .cb-btn { flex: 1; height: 56px; border-radius: 18px; background: linear-gradient(140deg, var(--orange-bright), var(--orange)); color: #fff; font-weight: 800; font-size: 15.5px; display: flex; align-items: center; justify-content: center; gap: 9px; box-shadow: var(--glow-orange), 0 12px 28px -12px rgba(236, 106, 44, 0.8); transition: transform 0.15s; }
         .cb-btn.apple { background: #000; border: 1px solid var(--hairline-strong); box-shadow: 0 12px 28px -12px rgba(0,0,0,0.9); }
         .cb-btn:active { transform: scale(0.97); }
-        .cb-btn:disabled { opacity: 0.9; }
+        .cb-btn:disabled { opacity: 0.6; }
         .spinner { width: 22px; height: 22px; border-radius: 50%; border: 2.5px solid rgba(255,255,255,0.3); border-top-color: #fff; animation: spin 0.7s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
       `}</style>
@@ -146,5 +208,13 @@ function Method({ id, method, setMethod, icon, title, sub, badge }) {
         .radio.on { background: var(--orange); border-color: var(--orange); }
       `}</style>
     </button>
+  );
+}
+
+export default function PaymentPage() {
+  return (
+    <Suspense fallback={<div className="app" />}>
+      <PaymentInner />
+    </Suspense>
   );
 }
