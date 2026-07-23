@@ -12,6 +12,7 @@ export default function CheckoutPage() {
   const [plateNumbers, setPlateNumbers] = useState("");
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
+  const [notes, setNotes] = useState("");
   const [pay, setPay] = useState("apple");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -73,6 +74,7 @@ export default function CheckoutPage() {
           customerPhone: phone.trim(),
           plate: plate || null,
           discountCode: discount?.code || null,
+          notes: notes.trim() || null,
         }),
       });
       const data = await res.json();
@@ -154,6 +156,20 @@ export default function CheckoutPage() {
             inputMode="numeric"
             dir="ltr"
             style={{ textAlign: "left" }}
+          />
+        </div>
+      </div>
+
+      {/* Notes */}
+      <div className="pad">
+        <div className="block-head">ملاحظات <span className="opt">(اختياري)</span></div>
+        <div className="field card reveal d3" style={{ height: "auto", alignItems: "flex-start", padding: "12px 16px" }}>
+          <textarea
+            placeholder="أي طلبات خاصة؟ مثلاً: بدون بصل"
+            value={notes}
+            onChange={(e) => setNotes(e.target.value.slice(0, 300))}
+            rows={2}
+            style={{ flex: 1, background: "none", border: "none", outline: "none", color: "var(--text)", fontFamily: "inherit", fontSize: 14, fontWeight: 600, resize: "none" }}
           />
         </div>
       </div>

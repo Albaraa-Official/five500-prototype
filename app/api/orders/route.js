@@ -54,6 +54,8 @@ export async function POST(req) {
         customerName: parsed.data.customerName,
         customerPhone: phone,
         plate: parsed.data.plate || null,
+        orderType: parsed.data.orderType || "pickup",
+        notes: parsed.data.notes || null,
         items: {
           create: priced.lines.map((l) => ({
             productId: l.productId,

@@ -35,11 +35,12 @@ model Product {
 }
 
 model ProductPrice {
-  id           String  @id @default(cuid())
-  productId    String
-  size         String  // "reg" | "large"
-  priceHalalas Int
-  product      Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  id                String  @id @default(cuid())
+  productId         String
+  size              String  // "reg" | "large"
+  priceHalalas      Int
+  loyverseVariantId String? // معرّف الـ variant المطابق في Loyverse (لإرسال بنود الطلب بدقة)
+  product           Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   @@unique([productId, size])
 }
@@ -78,6 +79,8 @@ model Order {
   customerName   String?
   customerPhone  String?
   plate          String?
+  orderType      String      @default("pickup") // "pickup" | "delivery"
+  notes          String?
   createdAt      DateTime    @default(now())
   updatedAt      DateTime    @updatedAt
   user           User?       @relation(fields: [userId], references: [id])
@@ -118,4 +121,31 @@ model Payment {
   amountHalalas Int
   createdAt     DateTime @default(now())
   order         Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+}
+
+// إعدادات التكاملات الخارجية (POS/دفع/تجارة). الأسرار (tokens/keys) لا تُخزَّن هنا أبداً —
+// فقط إعدادات غير حساسة (enabled، storeId، ...) — الأسرار تُقرأ من Environment Variables حصراً.
+model IntegrationSetting {
+  id            String    @id @default(cuid())
+  key           String    @unique // "loyverse" | "moyasar" | ...
+  enabled       Boolean   @default(false)
+  config        Json?     // إعدادات غير حساسة خاصة بالتكامل
+  status        String    @default("unknown") // unknown | connected | error
+  lastError     String?
+  lastCheckedAt DateTime?
+  updatedAt     DateTime  @updatedAt
+  createdAt     DateTime  @default(now())
+}
+
+// سجل محاولات إرسال الطلبات لأنظمة الـ POS الخارجية — للتتبع وإعادة المحاولة اليدوية عند الحاجة.
+model IntegrationLog {
+  id          String   @id @default(cuid())
+  integration String   // "loyverse"
+  orderId     String?
+  status      String   // success | failed
+  attempts    Int      @default(1)
+  message     String?
+  createdAt   DateTime @default(now())
+
+  @@index([integration, createdAt])
 }

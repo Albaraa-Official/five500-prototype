@@ -16,6 +16,8 @@ const patchSchema = z.object({
   active: z.boolean().optional(),
   priceRegHalalas: z.number().int().min(0).optional(),
   priceLargeHalalas: z.number().int().min(0).optional().nullable(),
+  regLoyverseVariantId: z.string().max(100).optional().nullable(),
+  largeLoyverseVariantId: z.string().max(100).optional().nullable(),
 }).strict();
 
 export async function PATCH(req, { params }) {
@@ -36,11 +38,14 @@ export async function PATCH(req, { params }) {
   try {
     await prisma.$transaction(async (tx) => {
       if (Object.keys(data).length) await tx.product.update({ where: { id }, data });
-      if (d.priceRegHalalas !== undefined) {
+      if (d.priceRegHalalas !== undefined || d.regLoyverseVariantId !== undefined) {
         await tx.productPrice.upsert({
           where: { productId_size: { productId: id, size: "reg" } },
-          update: { priceHalalas: d.priceRegHalalas },
-          create: { productId: id, size: "reg", priceHalalas: d.priceRegHalalas },
+          update: {
+            ...(d.priceRegHalalas !== undefined ? { priceHalalas: d.priceRegHalalas } : {}),
+            ...(d.regLoyverseVariantId !== undefined ? { loyverseVariantId: d.regLoyverseVariantId } : {}),
+          },
+          create: { productId: id, size: "reg", priceHalalas: d.priceRegHalalas ?? 0, loyverseVariantId: d.regLoyverseVariantId || null },
         });
       }
       if (d.priceLargeHalalas !== undefined) {
@@ -53,6 +58,9 @@ export async function PATCH(req, { params }) {
             create: { productId: id, size: "large", priceHalalas: d.priceLargeHalalas },
           });
         }
+      }
+      if (d.largeLoyverseVariantId !== undefined) {
+        await tx.productPrice.updateMany({ where: { productId: id, size: "large" }, data: { loyverseVariantId: d.largeLoyverseVariantId } });
       }
     });
     const product = await prisma.product.findUnique({ where: { id }, include: { prices: true } });
