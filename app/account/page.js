@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { I } from "@/components/Icons";
 
 const rows = [
-  { icon: "🧾", label: "طلباتي", sub: "تتبّع وأعد الطلب" },
+  { icon: "🧾", label: "طلباتي", sub: "تتبّع وأعد الطلب", href: "/orders" },
   { icon: "📍", label: "عناويني", sub: "المنزل · العمل" },
   { icon: "❤️", label: "المفضلة", sub: "أصنافك المحفوظة" },
   { icon: "💳", label: "طرق الدفع", sub: "Apple Pay · مدى" },
@@ -73,16 +73,20 @@ export default function AccountPage() {
       )}
 
       <div className="pad rows">
-        {rows.map((r, i) => (
-          <div className="arow card reveal" style={{ animationDelay: `${0.04 * i}s` }} key={r.label}>
-            <span className="arow-ic">{r.icon}</span>
-            <div className="arow-body">
-              <b>{r.label}</b>
-              <span className="muted">{r.sub}</span>
-            </div>
-            <I.back style={{ transform: "rotate(180deg)", color: "var(--text-3)" }} />
-          </div>
-        ))}
+        {rows.map((r, i) => {
+          const Wrap = r.href ? Link : "div";
+          const wrapProps = r.href ? { href: r.href } : {};
+          return (
+            <Wrap key={r.label} {...wrapProps} className="arow card reveal" style={{ animationDelay: `${0.04 * i}s` }}>
+              <span className="arow-ic">{r.icon}</span>
+              <div className="arow-body">
+                <b>{r.label}</b>
+                <span className="muted">{r.sub}</span>
+              </div>
+              <I.back style={{ transform: "rotate(180deg)", color: "var(--text-3)" }} />
+            </Wrap>
+          );
+        })}
       </div>
 
       {user && (

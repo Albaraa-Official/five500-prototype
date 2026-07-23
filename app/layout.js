@@ -5,6 +5,7 @@ import { CatalogProvider } from "@/context/CatalogContext";
 import Splash from "@/components/Splash";
 import { Header } from "@/components/Chrome";
 import AddToast from "@/components/AddToast";
+import SwRegister from "@/components/SwRegister";
 
 const tajawal = Tajawal({
   subsets: ["arabic", "latin"],
@@ -23,6 +24,8 @@ const rubik = Rubik({
 export const metadata = {
   title: "FIVE 500 — فايف هاندرد",
   description: "تجربة برجر فاخرة · نموذج أولي",
+  manifest: "/manifest.json",
+  appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "FIVE 500" },
 };
 
 export const viewport = {
@@ -36,6 +39,7 @@ export default function RootLayout({ children }) {
   return (
     <html lang="ar" dir="rtl" className={`${tajawal.variable} ${rubik.variable}`}>
       <body>
+        <SwRegister />
         <CartProvider>
          <CatalogProvider>
           <div className="stage">

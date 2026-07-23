@@ -15,10 +15,36 @@ export default function CheckoutPage() {
   const [pay, setPay] = useState("apple");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [discountInput, setDiscountInput] = useState("");
+  const [discount, setDiscount] = useState(null); // { code, discountHalalas }
+  const [discountChecking, setDiscountChecking] = useState(false);
+  const [discountError, setDiscountError] = useState("");
 
   // ملاحظة: هذه الأرقام للعرض فقط — الإجمالي المعتمد يُحسب في السيرفر.
-  const tax = Math.round(subtotal * 0.15);
-  const total = subtotal + tax;
+  const subtotalHalalas = Math.round(subtotal * 100);
+  const discountHalalas = discount ? discount.discountHalalas : 0;
+  const taxableHalalas = subtotalHalalas - discountHalalas;
+  const tax = Math.round(taxableHalalas * 0.15);
+  const total = Math.round((taxableHalalas + tax) / 100);
+
+  const applyDiscount = async () => {
+    if (!discountInput.trim()) return;
+    setDiscountChecking(true);
+    setDiscountError("");
+    try {
+      const res = await fetch("/api/discounts/validate", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: discountInput.trim(), subtotalHalalas }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setDiscountError("كود غير صالح أو منتهي."); setDiscount(null); }
+      else setDiscount(data);
+    } catch {
+      setDiscountError("تعذّر التحقق من الكود.");
+    } finally {
+      setDiscountChecking(false);
+    }
+  };
 
   const onPlateLetters = (e) => {
     const v = e.target.value
@@ -46,6 +72,7 @@ export default function CheckoutPage() {
           customerName: name.trim(),
           customerPhone: phone.trim(),
           plate: plate || null,
+          discountCode: discount?.code || null,
         }),
       });
       const data = await res.json();
@@ -148,11 +175,37 @@ export default function CheckoutPage() {
         </div>
       </div>
 
+      {/* Discount code */}
+      <div className="pad">
+        <div className="block-head">كود الخصم <span className="opt">(اختياري)</span></div>
+        <div style={{ display: "flex", gap: 8 }}>
+          <div className="field card" style={{ flex: 1 }} dir="ltr">
+            <input
+              placeholder="CODE"
+              value={discountInput}
+              onChange={(e) => { setDiscountInput(e.target.value); setDiscountError(""); }}
+              style={{ textAlign: "left", textTransform: "uppercase" }}
+              disabled={!!discount}
+            />
+          </div>
+          {discount ? (
+            <button className="btn btn-ghost" onClick={() => { setDiscount(null); setDiscountInput(""); }} style={{ height: 56, padding: "0 16px", color: "#e05252" }}>إزالة</button>
+          ) : (
+            <button className="btn btn-primary" onClick={applyDiscount} disabled={discountChecking || !discountInput.trim()} style={{ height: 56, padding: "0 20px" }}>
+              {discountChecking ? "..." : "تطبيق"}
+            </button>
+          )}
+        </div>
+        {discountError && <p style={{ color: "#e05252", fontSize: 12.5, fontWeight: 700, marginTop: 6 }}>⚠️ {discountError}</p>}
+        {discount && <p style={{ color: "#46c37b", fontSize: 12.5, fontWeight: 700, marginTop: 6 }}>✓ تم تطبيق الكود {discount.code}</p>}
+      </div>
+
       {/* Summary */}
       <div className="pad">
         <div className="summary card reveal d5">
           <Row label={`المجموع (${count})`} value={money(subtotal)} />
-          <Row label="ضريبة (15%)" value={money(tax)} />
+          {discount && <Row label="الخصم" value={`- ${money(discountHalalas / 100)}`} />}
+          <Row label="ضريبة (15%)" value={money(tax / 100)} />
           <div className="divider" />
           <Row label="الإجمالي" value={money(total)} big />
         </div>

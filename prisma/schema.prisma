@@ -71,6 +71,8 @@ model Order {
   status         String      @default("pending_payment")
   // pending_payment | paid | preparing | ready | completed | cancelled | payment_failed
   subtotalHalalas Int
+  discountHalalas Int         @default(0)
+  discountCode    String?
   vatHalalas      Int
   totalHalalas    Int
   customerName   String?
@@ -93,6 +95,18 @@ model OrderItem {
   unitPriceHalalas Int    // snapshot السعر وقت الطلب
   order           Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
   product         Product @relation(fields: [productId], references: [id])
+}
+
+model DiscountCode {
+  id         String    @id @default(cuid())
+  code       String    @unique
+  type       String    // "percent" | "fixed"
+  value      Int       // percent: 1-100 | fixed: هللات
+  active     Boolean   @default(true)
+  maxUses    Int?      // null = بلا حد
+  uses       Int       @default(0)
+  expiresAt  DateTime?
+  createdAt  DateTime  @default(now())
 }
 
 model Payment {

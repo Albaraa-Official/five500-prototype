@@ -29,7 +29,7 @@ export async function POST(req) {
 
   let priced;
   try {
-    priced = await priceOrder(parsed.data.items);
+    priced = await priceOrder(parsed.data.items, parsed.data.discountCode || null);
   } catch (err) {
     if (err.code === "INVALID_ITEM") {
       return NextResponse.json({ error: "invalid_item", message: err.message }, { status: 400 });
@@ -47,6 +47,8 @@ export async function POST(req) {
         branchId: DEFAULT_BRANCH,
         status: "pending_payment",
         subtotalHalalas: priced.subtotalHalalas,
+        discountHalalas: priced.discountHalalas,
+        discountCode: priced.discountCode,
         vatHalalas: priced.vatHalalas,
         totalHalalas: priced.totalHalalas,
         customerName: parsed.data.customerName,
