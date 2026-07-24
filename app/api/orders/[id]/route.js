@@ -3,6 +3,7 @@
 import { NextResponse } from "next/server";
 import { getSessionUserId } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
+import { buildTlvQrBase64, isZatcaConfigured, getSellerNameAr } from "@/lib/zatca";
 
 export async function GET(_req, { params }) {
   const order = await prisma.order.findUnique({
@@ -45,6 +46,18 @@ export async function GET(_req, { params }) {
         qty: i.qty,
         unitPriceHalalas: i.unitPriceHalalas,
       })),
+      // رمز QR لفاتورة ضريبية مبسطة (ZATCA المرحلة الأولى) — فقط إن كان الرقم الضريبي مضبوطاً
+      ...(isZatcaConfigured()
+        ? {
+            zatcaQr: buildTlvQrBase64({
+              sellerName: getSellerNameAr(),
+              vatNumber: process.env.TAX_NUMBER,
+              timestamp: order.createdAt.toISOString(),
+              totalWithVat: (order.totalHalalas / 100).toFixed(2),
+              vatTotal: (order.vatHalalas / 100).toFixed(2),
+            }),
+          }
+        : {}),
     },
   });
 }

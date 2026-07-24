@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { I } from "@/components/Icons";
 import { formatSAR } from "@/lib/money";
+import QRCode from "qrcode";
 
 const STATUS_STEP = { paid: 0, preparing: 1, ready: 2, completed: 2 };
 
@@ -11,6 +12,21 @@ function SuccessInner() {
   const sp = useSearchParams();
   const orderId = sp.get("order");
   const [order, setOrder] = useState(null);
+  const [zatcaQrImg, setZatcaQrImg] = useState(null);
+
+  useEffect(() => {
+    if (!order?.zatcaQr) {
+      setZatcaQrImg(null);
+      return;
+    }
+    let alive = true;
+    QRCode.toDataURL(order.zatcaQr, { margin: 1, width: 160 })
+      .then((url) => alive && setZatcaQrImg(url))
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [order?.zatcaQr]);
 
   useEffect(() => {
     if (!orderId) return;
@@ -77,6 +93,13 @@ function SuccessInner() {
           </div>
         </div>
 
+        {zatcaQrImg && (
+          <div className="zatca-card glass reveal d3">
+            <span className="zatca-label muted">فاتورة ضريبية مبسطة</span>
+            <img src={zatcaQrImg} alt="ZATCA QR" width={160} height={160} />
+          </div>
+        )}
+
         <div className="s-actions reveal d4">
           <Link href="/" className="btn btn-primary btn-block">العودة للرئيسية</Link>
           <Link href="/account" className="btn btn-ghost btn-block" style={{ marginTop: 10 }}>طلباتي</Link>
@@ -102,6 +125,8 @@ function SuccessInner() {
         .eta { display: flex; align-items: center; justify-content: center; gap: 7px; margin-top: 20px; font-size: 13.5px; font-weight: 600; color: var(--text-2); background: var(--surface); border: 1px solid var(--hairline); padding: 11px; border-radius: 15px; }
         .eta b { color: var(--text); }
         .s-actions { width: 100%; margin-top: auto; padding-top: 30px; }
+        .zatca-card { width: 100%; border-radius: 24px; padding: 18px; margin-top: 16px; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+        .zatca-label { font-size: 12.5px; font-weight: 700; }
       `}</style>
     </div>
   );
