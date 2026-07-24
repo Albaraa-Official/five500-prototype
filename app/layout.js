@@ -4,6 +4,7 @@ import { CartProvider } from "@/context/CartContext";
 import { CatalogProvider } from "@/context/CatalogContext";
 import Splash from "@/components/Splash";
 import { Header } from "@/components/Chrome";
+import Footer from "@/components/Footer";
 import AddToast from "@/components/AddToast";
 import SwRegister from "@/components/SwRegister";
 
@@ -47,7 +48,10 @@ export default function RootLayout({ children }) {
               <div className="notch" />
               <Splash />
               <Header />
-              <div className="app-scroll">{children}</div>
+              <div className="app-scroll">
+                {children}
+                <Footer />
+              </div>
               <AddToast />
               <div className="grain" aria-hidden />
             </div>
