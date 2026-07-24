@@ -30,6 +30,7 @@ function MenuInner() {
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder="ابحث عن برجر، فرايز، صوص…"
+            aria-label="ابحث في المنيو"
           />
         </div>
       </div>

@@ -114,6 +114,7 @@ export default function CheckoutPage() {
             placeholder="ABC"
             value={plateLetters}
             onChange={onPlateLetters}
+            aria-label="حروف لوحة السيارة"
           />
           <span className="plate-sep" />
           <input
@@ -122,6 +123,7 @@ export default function CheckoutPage() {
             value={plateNumbers}
             onChange={onPlateNumbers}
             inputMode="numeric"
+            aria-label="أرقام لوحة السيارة"
           />
           <div className="plate-ksa">
             <span>KSA</span>
@@ -140,6 +142,7 @@ export default function CheckoutPage() {
             placeholder="اسمك الكامل"
             value={name}
             onChange={(e) => setName(e.target.value)}
+            aria-label="الاسم الكامل"
           />
         </div>
       </div>
@@ -156,6 +159,7 @@ export default function CheckoutPage() {
             inputMode="numeric"
             dir="ltr"
             style={{ textAlign: "left" }}
+            aria-label="رقم الجوال"
           />
         </div>
       </div>
@@ -169,6 +173,7 @@ export default function CheckoutPage() {
             value={notes}
             onChange={(e) => setNotes(e.target.value.slice(0, 300))}
             rows={2}
+            aria-label="ملاحظات الطلب (اختياري)"
             style={{ flex: 1, background: "none", border: "none", outline: "none", color: "var(--text)", fontFamily: "inherit", fontSize: 14, fontWeight: 600, resize: "none" }}
           />
         </div>
@@ -202,6 +207,7 @@ export default function CheckoutPage() {
               onChange={(e) => { setDiscountInput(e.target.value); setDiscountError(""); }}
               style={{ textAlign: "left", textTransform: "uppercase" }}
               disabled={!!discount}
+              aria-label="كود الخصم"
             />
           </div>
           {discount ? (

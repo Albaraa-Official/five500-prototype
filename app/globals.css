@@ -27,7 +27,9 @@
   /* Text */
   --text: #f6f4f1;
   --text-2: #b7b4bd;
-  --text-3: #77747f;
+  /* Lightened from #77747f to meet WCAG AA (4.5:1) on --bg / --surface for
+     small muted text (footer links, timestamps, hints). */
+  --text-3: #7d7a84;
 
   /* FX */
   --shadow-soft: 0 20px 60px -20px rgba(0, 0, 0, 0.75);
@@ -88,6 +90,35 @@ img {
 ::selection {
   background: var(--orange);
   color: #fff;
+}
+
+/* ---------- Focus states (keyboard navigation) ----------
+   No element in this app suppresses the outline, so this is additive: a
+   consistent brand-orange ring on every interactive element, visible only
+   for keyboard focus (not on mouse/touch clicks) via :focus-visible. */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+[tabindex]:focus-visible,
+[role="button"]:focus-visible,
+[role="link"]:focus-visible,
+[role="tab"]:focus-visible,
+[role="switch"]:focus-visible {
+  outline: 2.5px solid var(--orange-bright);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+/* Rounder controls get a matching, larger radius so the ring doesn't look boxy */
+.btn:focus-visible,
+.chip:focus-visible,
+.ghead-btn:focus-visible,
+.round:focus-visible,
+.stepper button:focus-visible,
+.seg button:focus-visible {
+  outline-offset: 3px;
+  border-radius: inherit;
 }
 
 /* ---------- Desktop: show the site inside a floating phone ---------- */
@@ -1277,4 +1308,55 @@ img {
 .app-footer-copy {
   font-size: 11px;
   color: var(--text-3);
+}
+
+/* ============================================================
+   Safe-area (notch/home-indicator) — bottom
+   The header already respects env(safe-area-inset-top). These fixed/
+   absolute bottom bars (checkout CTA on cart & payment, product action bar)
+   need the matching bottom inset so they clear the iPhone home indicator.
+   ============================================================ */
+.checkoutbar,
+.actionbar {
+  bottom: max(18px, calc(18px + env(safe-area-inset-bottom, 0px))) !important;
+}
+
+/* ============================================================
+   Touch targets — enlarge tap area to >=44x44px without changing the
+   visual size of small icon buttons (invisible hit-area via ::after).
+   ============================================================ */
+.stepper button,
+.gcard-foot button,
+.fcard-foot button {
+  position: relative;
+}
+.ghead-btn::after,
+.stepper button::after,
+.gcard-foot button::after,
+.fcard-foot button::after,
+.prow-add::after,
+.prow-fav::after,
+.gcard-fav::after {
+  content: "";
+  position: absolute;
+  inset: 50%;
+  width: max(100%, 44px);
+  height: max(100%, 44px);
+  transform: translate(-50%, -50%);
+}
+
+/* ============================================================
+   Reduced motion — cover the remaining looping/entrance animations
+   (page-enter and .splash already have their own overrides above).
+   ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+  .reveal,
+  .glowbg,
+  .splash-glow,
+  .splash-inner,
+  .splash-bar span,
+  .ghead-sweep.on,
+  .add-pop {
+    animation: none !important;
+  }
 }

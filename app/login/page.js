@@ -80,7 +80,7 @@ function LoginInner() {
             <div className="block-head" style={{ fontSize: 15, fontWeight: 800, marginBottom: 8 }}>رقم الجوال</div>
             <div className="field card" dir="ltr" style={{ display: "flex", alignItems: "center", gap: 12, height: 56, padding: "0 16px" }}>
               <span style={{ fontWeight: 800, color: "var(--text-2)" }}>+966</span>
-              <input placeholder="5X XXX XXXX" value={phone} onChange={(e) => setPhone(e.target.value)} inputMode="numeric" dir="ltr" style={{ flex: 1, background: "none", border: "none", outline: "none", color: "var(--text)", fontSize: 15, fontWeight: 600, textAlign: "left" }} />
+              <input placeholder="5X XXX XXXX" value={phone} onChange={(e) => setPhone(e.target.value)} inputMode="numeric" dir="ltr" aria-label="رقم الجوال" style={{ flex: 1, background: "none", border: "none", outline: "none", color: "var(--text)", fontSize: 15, fontWeight: 600, textAlign: "left" }} />
             </div>
             <button className="btn btn-primary btn-block" onClick={requestCode} disabled={loading || !phone.trim()} style={{ marginTop: 20 }}>
               {loading ? "جاري الإرسال…" : "إرسال الرمز"}
@@ -90,7 +90,7 @@ function LoginInner() {
           <>
             <div className="block-head" style={{ fontSize: 15, fontWeight: 800, marginBottom: 8 }}>رمز التحقق</div>
             <div className="field card" dir="ltr" style={{ display: "flex", alignItems: "center", height: 56, padding: "0 16px" }}>
-              <input placeholder="0000" value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 4))} inputMode="numeric" dir="ltr" style={{ flex: 1, background: "none", border: "none", outline: "none", color: "var(--text)", fontSize: 22, fontWeight: 800, letterSpacing: 8, textAlign: "center" }} />
+              <input placeholder="0000" value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 4))} inputMode="numeric" dir="ltr" aria-label="رمز التحقق" style={{ flex: 1, background: "none", border: "none", outline: "none", color: "var(--text)", fontSize: 22, fontWeight: 800, letterSpacing: 8, textAlign: "center" }} />
             </div>
             {devCode && <p className="muted" style={{ fontSize: 12, marginTop: 8 }}>🔧 وضع التطوير — الرمز: <b>{devCode}</b></p>}
             <button className="btn btn-primary btn-block" onClick={verify} disabled={loading || code.length !== 4} style={{ marginTop: 20 }}>

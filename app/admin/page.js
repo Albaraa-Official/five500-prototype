@@ -58,10 +58,11 @@ export default function AdminPage() {
         <h1 className="display" style={{ fontSize: 22, fontWeight: 900 }}>⚙️ لوحة الإدارة</h1>
       </header>
 
-      <div className="hide-scroll" style={{ display: "flex", gap: 8, overflowX: "auto", margin: "16px 0" }}>
+      <div className="hide-scroll" role="tablist" aria-label="أقسام لوحة الإدارة" style={{ display: "flex", gap: 8, overflowX: "auto", margin: "16px 0" }}>
         {TABS.map(([v, l]) => (
           <button key={v} onClick={() => setTab(v)}
-            style={{ flexShrink: 0, padding: "8px 16px", borderRadius: 12, fontSize: 13, fontWeight: 800,
+            role="tab" aria-selected={tab === v}
+            style={{ flexShrink: 0, minHeight: 44, padding: "8px 16px", borderRadius: 12, fontSize: 13, fontWeight: 800,
               background: tab === v ? "var(--orange)" : "var(--surface)", color: tab === v ? "#fff" : "var(--text-2)", border: "1px solid var(--hairline)" }}>
             {l}
           </button>
@@ -135,10 +136,11 @@ function OrdersTab() {
 
   return (
     <div>
-      <div className="hide-scroll" style={{ display: "flex", gap: 8, overflowX: "auto", marginBottom: 14 }}>
+      <div className="hide-scroll" role="tablist" aria-label="تصفية الطلبات حسب الحالة" style={{ display: "flex", gap: 8, overflowX: "auto", marginBottom: 14 }}>
         {filters.map(([v, l]) => (
           <button key={v} onClick={() => setFilter(v)}
-            style={{ flexShrink: 0, padding: "6px 14px", borderRadius: 10, fontSize: 12.5, fontWeight: 700,
+            role="tab" aria-selected={filter === v}
+            style={{ flexShrink: 0, minHeight: 44, padding: "6px 14px", borderRadius: 10, fontSize: 12.5, fontWeight: 700,
               background: filter === v ? "var(--purple)" : "var(--surface)", color: filter === v ? "#fff" : "var(--text-2)", border: "1px solid var(--hairline)" }}>
             {l}
           </button>
@@ -631,6 +633,7 @@ function IntegrationsTab() {
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 14 }}>
           <span style={{ fontSize: 13.5, fontWeight: 700 }}>تفعيل التكامل</span>
           <button onClick={() => toggleLoyverse(!loyverse.enabled)}
+            role="switch" aria-checked={loyverse.enabled} aria-label="تفعيل تكامل Loyverse POS"
             style={{ width: 50, height: 28, borderRadius: 14, background: loyverse.enabled ? "var(--orange)" : "var(--surface)", border: "1px solid var(--hairline)", position: "relative", transition: "0.2s" }}>
             <span style={{ position: "absolute", top: 2, [loyverse.enabled ? "right" : "left"]: 2, width: 22, height: 22, borderRadius: "50%", background: "#fff", transition: "0.2s" }} />
           </button>
@@ -645,6 +648,7 @@ function IntegrationsTab() {
           <div style={{ display: "flex", gap: 8 }}>
             <input value={storeIdDraft} onChange={(e) => setStoreIdDraft(e.target.value)}
               placeholder="Loyverse Store ID"
+              aria-label="Loyverse Store ID"
               style={{ flex: 1, height: 40, borderRadius: 10, background: "var(--bg)", border: "1px solid var(--hairline)", color: "var(--text)", padding: "0 12px", fontSize: 13 }} />
             <button className="btn btn-ghost" onClick={saveStoreId} style={{ height: 40, padding: "0 14px", fontSize: 13 }}>حفظ</button>
           </div>

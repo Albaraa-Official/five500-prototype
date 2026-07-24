@@ -32,7 +32,7 @@ function AddBtn({ className, onAdd }) {
     setTimeout(() => setPop(false), 500);
   };
   return (
-    <button className={`${className} ${pop ? "add-pop" : ""}`} onClick={handle} aria-label="أضف">
+    <button className={`${className} ${pop ? "add-pop" : ""}`} onClick={handle} aria-label={pop ? "تمت الإضافة" : "أضف للسلة"}>
       {pop ? <I.check style={{ width: 16, height: 16 }} /> : <I.plus />}
     </button>
   );
@@ -75,6 +75,8 @@ function TapLink({ href, className, style, children }) {
       onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}
       onClick={onClick}
+      role="link"
+      tabIndex={0}
     >
       {children}
     </div>
