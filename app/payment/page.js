@@ -1,10 +1,14 @@
 "use client";
 import Image from "next/image";
-import { Suspense, useEffect, useState } from "react";
+import Script from "next/script";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { I } from "@/components/Icons";
 import { useCart } from "@/context/CartContext";
 import { formatSAR } from "@/lib/money";
+
+const MOYASAR_SDK_JS = "https://unpkg.com/moyasar-payment-form@2/dist/moyasar.umd.js";
+const MOYASAR_SDK_CSS = "https://unpkg.com/moyasar-payment-form@2/dist/moyasar.css";
 
 function PaymentInner() {
   const router = useRouter();
@@ -17,6 +21,11 @@ function PaymentInner() {
   const [method, setMethod] = useState("apple");
   const [paying, setPaying] = useState(false);
   const [error, setError] = useState("");
+
+  // وضع Moyasar الحقيقي (الدفعة أُنشئت بنجاح ووضعها moyasar وليس mock)
+  const [moyasarPayment, setMoyasarPayment] = useState(null); // { paymentId, amountHalalas, publishableKey }
+  const [sdkReady, setSdkReady] = useState(false);
+  const moyasarInitedRef = useRef(false);
 
   // تحميل الطلب المعتمد من السيرفر (الإجمالي الموثوق)
   useEffect(() => {
@@ -67,24 +76,54 @@ function PaymentInner() {
           setPaying(false);
           return;
         }
-      } else {
-        // TODO(moyasar): توجيه المستخدم لواجهة Moyasar المستضافة؛ التأكيد يصل عبر webhook.
-        setError("تكامل Moyasar لم يُفعّل بعد.");
-        setPaying(false);
+
+        // 3) نجاح — نفرّغ السلة ونعرض صفحة الطلب
+        clear();
+        router.push(`/success?order=${orderId}`);
         return;
       }
 
-      // 3) نجاح — نفرّغ السلة ونعرض صفحة الطلب
-      clear();
-      router.push(`/success?order=${orderId}`);
+      // وضع Moyasar الحقيقي: لا نؤكد الدفع من العميل أبداً. نعرض نموذج Moyasar
+      // المستضاف، والتأكيد النهائي يصل عبر webhook (مصدر الحقيقة الوحيد).
+      setMoyasarPayment({
+        paymentId: cData.paymentId,
+        amountHalalas: cData.amountHalalas,
+        publishableKey: cData.publishableKey,
+      });
+      setPaying(false);
     } catch (e) {
       setError("تعذّر الاتصال بالخادم.");
       setPaying(false);
     }
   };
 
+  // تهيئة نموذج Moyasar المستضاف بمجرد جاهزية الـSDK ومعرفة بيانات الدفعة
+  useEffect(() => {
+    if (!moyasarPayment || !sdkReady || moyasarInitedRef.current) return;
+    if (typeof window === "undefined" || !window.Moyasar) return;
+    moyasarInitedRef.current = true;
+    window.Moyasar.init({
+      element: "#moyasar-form",
+      amount: moyasarPayment.amountHalalas,
+      currency: "SAR",
+      description: `طلب FIVE 500 #${orderId}`,
+      publishable_api_key: moyasarPayment.publishableKey,
+      callback_url: `${window.location.origin}/success?order=${orderId}`,
+      metadata: { paymentId: moyasarPayment.paymentId },
+      methods: ["creditcard", "applepay"],
+    });
+  }, [moyasarPayment, sdkReady, orderId]);
+
+  const isMoyasarMode = !!moyasarPayment;
+
   return (
-    <div className="app" style={{ paddingBottom: 130 }}>
+    <div className="app" style={{ paddingBottom: isMoyasarMode ? 40 : 130 }}>
+      {isMoyasarMode && (
+        <>
+          <link rel="stylesheet" href={MOYASAR_SDK_CSS} />
+          <Script src={MOYASAR_SDK_JS} strategy="lazyOnload" onLoad={() => setSdkReady(true)} />
+        </>
+      )}
       <header className="pad c-head reveal">
         <button className="round card" onClick={() => router.back()} aria-label="رجوع"><I.back /></button>
         <h1 className="display">الدفع</h1>
@@ -112,15 +151,25 @@ function PaymentInner() {
         </div>
       </div>
 
-      {/* Methods */}
-      <div className="pad">
-        <div className="block-head"><span>اختر طريقة الدفع</span></div>
-        <div className="methods">
-          <Method id="apple" method={method} setMethod={setMethod} icon={<I.apple />} title="Apple Pay" sub="ادفع بلمسة عبر آيفون" badge="الأسرع" />
-          <Method id="card" method={method} setMethod={setMethod} icon={<I.card />} title="بطاقة مدى / ائتمانية" sub="Visa · Mastercard · مدى" />
-          <Method id="cash" method={method} setMethod={setMethod} icon={<I.cash />} title="الدفع نقداً" sub="عند الاستلام" />
+      {/* Methods — يُستخدم في وضع mock فقط. في وضع Moyasar يعرض النموذج المستضاف واجهته الخاصة. */}
+      {!isMoyasarMode && (
+        <div className="pad">
+          <div className="block-head"><span>اختر طريقة الدفع</span></div>
+          <div className="methods">
+            <Method id="apple" method={method} setMethod={setMethod} icon={<I.apple />} title="Apple Pay" sub="ادفع بلمسة عبر آيفون" badge="الأسرع" />
+            <Method id="card" method={method} setMethod={setMethod} icon={<I.card />} title="بطاقة مدى / ائتمانية" sub="Visa · Mastercard · مدى" />
+            <Method id="cash" method={method} setMethod={setMethod} icon={<I.cash />} title="الدفع نقداً" sub="عند الاستلام" />
+          </div>
         </div>
-      </div>
+      )}
+
+      {isMoyasarMode && (
+        <div className="pad">
+          <div className="block-head"><span>بيانات الدفع</span></div>
+          <div id="moyasar-form" className="mysr reveal" />
+          {!sdkReady && <div className="muted" style={{ textAlign: "center", padding: "18px 0", fontSize: 13 }}>جارِ تحميل نموذج الدفع…</div>}
+        </div>
+      )}
 
       {error && (
         <div className="pad">
@@ -130,30 +179,34 @@ function PaymentInner() {
         </div>
       )}
 
-      <div className="pad note muted reveal d4">
-        🔒 نموذج عرض — الدفع محاكى حتى تفعيل Moyasar. الإجمالي محسوب في الخادم.
-      </div>
-
-      {/* Pay bar */}
-      <div className="checkoutbar glass">
-        <div className="cb-total">
-          <span className="muted">الإجمالي</span>
-          <b className="price">{loading ? "…" : formatSAR(totalHalalas)}</b>
+      {!isMoyasarMode && (
+        <div className="pad note muted reveal d4">
+          🔒 نموذج عرض — الدفع محاكى حتى تفعيل Moyasar. الإجمالي محسوب في الخادم.
         </div>
-        <button
-          className={`cb-btn ${method === "apple" ? "apple" : ""}`}
-          onClick={pay}
-          disabled={paying || loading || !order}
-        >
-          {paying ? (
-            <span className="spinner" />
-          ) : method === "apple" ? (
-            <><I.apple /> ادفع عبر Apple Pay</>
-          ) : (
-            <>تأكيد الدفع · {formatSAR(totalHalalas)}</>
-          )}
-        </button>
-      </div>
+      )}
+
+      {/* Pay bar — في وضع Moyasar، النموذج المستضاف له زر إرسال خاص به */}
+      {!isMoyasarMode && (
+        <div className="checkoutbar glass">
+          <div className="cb-total">
+            <span className="muted">الإجمالي</span>
+            <b className="price">{loading ? "…" : formatSAR(totalHalalas)}</b>
+          </div>
+          <button
+            className={`cb-btn ${method === "apple" ? "apple" : ""}`}
+            onClick={pay}
+            disabled={paying || loading || !order}
+          >
+            {paying ? (
+              <span className="spinner" />
+            ) : method === "apple" ? (
+              <><I.apple /> ادفع عبر Apple Pay</>
+            ) : (
+              <>تأكيد الدفع · {formatSAR(totalHalalas)}</>
+            )}
+          </button>
+        </div>
+      )}
 
       <style jsx>{`
         .c-head { display: flex; align-items: center; gap: 14px; padding-top: 6px; }
@@ -171,6 +224,7 @@ function PaymentInner() {
         .block-head { margin: 26px 0 12px; font-size: 15px; font-weight: 800; }
         .methods { display: flex; flex-direction: column; gap: 12px; }
         .note { text-align: center; font-size: 12.5px; font-weight: 600; margin-top: 18px; }
+        .mysr { min-height: 60px; }
         .checkoutbar { position: absolute; bottom: 18px; left: 50%; transform: translateX(-50%); width: calc(100% - 32px); max-width: 404px; height: 74px; border-radius: 24px; display: flex; align-items: center; gap: 12px; padding: 0 12px 0 18px; z-index: 60; box-shadow: var(--shadow-soft); }
         .cb-total { display: flex; flex-direction: column; line-height: 1.25; }
         .cb-total .muted { font-size: 11px; }

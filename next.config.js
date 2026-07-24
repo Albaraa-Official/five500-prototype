@@ -17,11 +17,12 @@ const securityHeaders = [
     // connect-src تسمح بـ Moyasar API فقط بجانب نفس الأصل.
     value: [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline'",
-      "style-src 'self' 'unsafe-inline'",
+      "script-src 'self' 'unsafe-inline' https://unpkg.com",
+      "style-src 'self' 'unsafe-inline' https://unpkg.com",
       "img-src 'self' data: blob:",
       "font-src 'self'",
       "connect-src 'self' https://api.moyasar.com",
+      "frame-src https://api.moyasar.com https://secure.moyasar.com",
       "frame-ancestors 'none'",
       "base-uri 'self'",
       "form-action 'self'",
