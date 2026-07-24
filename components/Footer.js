@@ -1,14 +1,27 @@
-// فوتر ثابت بأسفل كل صفحة — يعرض بيانات السجل التجاري وروابط السياسات القانونية.
+// فوتر ثابت بأسفل كل صفحة — روابط قانونية/تعريفية بأيقونات موحّدة + بيانات السجل التجاري.
 import Link from "next/link";
+
+const LINKS = [
+  { href: "/about", icon: "🏠", label: "من نحن" },
+  { href: "/contact", icon: "💬", label: "تواصل معنا" },
+  { href: "/legal/privacy", icon: "🔒", label: "الخصوصية" },
+  { href: "/legal/terms", icon: "📄", label: "الشروط" },
+];
 
 export default function Footer() {
   return (
     <footer className="app-footer">
-      <div className="app-footer-links">
-        <Link href="/legal/privacy">سياسة الخصوصية</Link>
-        <span className="app-footer-dot">·</span>
-        <Link href="/legal/terms">الشروط والأحكام</Link>
-      </div>
+      <nav className="app-footer-grid">
+        {LINKS.map((l) => (
+          <Link key={l.href} href={l.href} className="app-footer-item">
+            <span className="app-footer-icon">{l.icon}</span>
+            <span className="app-footer-label">{l.label}</span>
+          </Link>
+        ))}
+      </nav>
+
+      <div className="app-footer-divider" />
+
       <div className="app-footer-cr">
         <span>مطعم خمس مائة لتقديم الوجبات</span>
         <span>س.ت ١١٢٢١٠٤٩٤٣</span>

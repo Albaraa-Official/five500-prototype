@@ -1230,27 +1230,55 @@ img {
    ============================================================ */
 .app-footer {
   margin-top: 28px;
-  padding: 20px 16px 24px;
+  padding: 24px 16px 26px;
   border-top: 1px solid var(--hairline);
   text-align: center;
 }
-.app-footer-links {
-  display: flex;
-  justify-content: center;
-  align-items: center;
+.app-footer-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
   gap: 8px;
-  font-size: 13px;
-  margin-bottom: 10px;
+  margin-bottom: 18px;
 }
-.app-footer-links a {
-  color: var(--text-2);
+.app-footer-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 14px 6px;
+  border-radius: var(--r-md, 18px);
+  background: var(--surface);
+  border: 1px solid var(--hairline);
   text-decoration: none;
+  transition: border-color 0.2s ease, transform 0.2s ease, background 0.2s ease;
 }
-.app-footer-links a:hover {
-  color: var(--text);
+.app-footer-item:hover {
+  border-color: var(--hairline-strong);
+  background: var(--surface-2);
+  transform: translateY(-2px);
 }
-.app-footer-dot {
-  color: var(--text-3);
+.app-footer-icon {
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 17px;
+  border-radius: 50%;
+  background: var(--orange-soft);
+}
+.app-footer-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-2);
+  white-space: nowrap;
+}
+.app-footer-divider {
+  height: 1px;
+  background: var(--hairline);
+  margin: 0 auto 14px;
+  width: 60%;
 }
 .app-footer-cr {
   display: flex;
