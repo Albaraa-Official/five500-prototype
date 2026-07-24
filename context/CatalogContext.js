@@ -1,5 +1,5 @@
 "use client";
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { products as staticProducts } from "@/data/menu";
 
 // مزوّد الكتالوج: يبدأ ببيانات ثابتة (لا وميض)، ثم يحدّثها من /api/products (المصدر الموثوق).
@@ -23,7 +23,9 @@ export function CatalogProvider({ children }) {
     };
   }, []);
 
-  return <CatalogContext.Provider value={{ products, loading }}>{children}</CatalogContext.Provider>;
+  const value = useMemo(() => ({ products, loading }), [products, loading]);
+
+  return <CatalogContext.Provider value={value}>{children}</CatalogContext.Provider>;
 }
 
 export const useCatalog = () => useContext(CatalogContext);

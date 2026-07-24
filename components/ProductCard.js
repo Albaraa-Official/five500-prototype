@@ -1,6 +1,6 @@
 "use client";
 import Image from "next/image";
-import { useRef, useState } from "react";
+import { memo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { I } from "./Icons";
@@ -84,7 +84,7 @@ function TapLink({ href, className, style, children }) {
 }
 
 /* Horizontal list row (menu list) */
-export function ProductRow({ p, delay = 0 }) {
+export const ProductRow = memo(function ProductRow({ p, delay = 0 }) {
   const { add } = useCart();
   return (
     <TapLink href={`/product/${p.id}`} className="prow reveal" style={{ animationDelay: `${delay}s` }}>
@@ -106,10 +106,10 @@ export function ProductRow({ p, delay = 0 }) {
       <AddBtn className="prow-add" onAdd={(rect) => add(p, "reg", 1, rect)} />
     </TapLink>
   );
-}
+});
 
 /* Grid card (menu bento) */
-export function GridCard({ p, feature = false, delay = 0 }) {
+export const GridCard = memo(function GridCard({ p, feature = false, delay = 0 }) {
   const { add } = useCart();
   return (
     <TapLink
@@ -134,10 +134,10 @@ export function GridCard({ p, feature = false, delay = 0 }) {
       </div>
     </TapLink>
   );
-}
+});
 
 /* Tall featured card (home carousel) */
-export function FeatureCard({ p, delay = 0 }) {
+export const FeatureCard = memo(function FeatureCard({ p, delay = 0 }) {
   const { add } = useCart();
   return (
     <TapLink href={`/product/${p.id}`} className="fcard reveal" style={{ animationDelay: `${delay}s` }}>
@@ -154,4 +154,4 @@ export function FeatureCard({ p, delay = 0 }) {
       </div>
     </TapLink>
   );
-}
+});

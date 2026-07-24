@@ -1,5 +1,5 @@
 "use client";
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useState, useCallback } from "react";
 
 const CartContext = createContext(null);
 
@@ -35,11 +35,13 @@ export function CartProvider({ children }) {
     } catch (e) {}
   }, [favs, loaded]);
 
-  const toggleFav = (id) =>
-    setFavs((prev) => (prev.includes(id) ? prev.filter((f) => f !== id) : [...prev, id]));
-  const isFav = (id) => favs.includes(id);
+  const toggleFav = useCallback(
+    (id) => setFavs((prev) => (prev.includes(id) ? prev.filter((f) => f !== id) : [...prev, id])),
+    []
+  );
+  const isFav = useCallback((id) => favs.includes(id), [favs]);
 
-  const add = (product, size = "reg", qty = 1, buttonRect = null) => {
+  const add = useCallback((product, size = "reg", qty = 1, buttonRect = null) => {
     setItems((prev) => {
       const key = `${product.id}-${size}`;
       const found = prev.find((i) => i.key === key);
@@ -61,25 +63,26 @@ export function CartProvider({ children }) {
       buttonRect,
       ts: Math.random()
     });
-  };
+  }, []);
 
-  const setQty = (key, qty) => {
+  const setQty = useCallback((key, qty) => {
     setItems((prev) =>
       qty <= 0 ? prev.filter((i) => i.key !== key) : prev.map((i) => (i.key === key ? { ...i, qty } : i))
     );
-  };
+  }, []);
 
-  const remove = (key) => setItems((prev) => prev.filter((i) => i.key !== key));
-  const clear = () => setItems([]);
+  const remove = useCallback((key) => setItems((prev) => prev.filter((i) => i.key !== key)), []);
+  const clear = useCallback(() => setItems([]), []);
 
   const count = items.reduce((s, i) => s + i.qty, 0);
   const subtotal = items.reduce((s, i) => s + i.price * i.qty, 0);
 
-  return (
-    <CartContext.Provider value={{ items, add, setQty, remove, clear, count, subtotal, favs, toggleFav, isFav, lastAdded }}>
-      {children}
-    </CartContext.Provider>
+  const value = useMemo(
+    () => ({ items, add, setQty, remove, clear, count, subtotal, favs, toggleFav, isFav, lastAdded }),
+    [items, add, setQty, remove, clear, count, subtotal, favs, toggleFav, isFav, lastAdded]
   );
+
+  return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
 }
 
 export const useCart = () => useContext(CartContext);

@@ -16,7 +16,7 @@ export default function Home() {
       {/* HERO — simple: strong image + CTA only */}
       <section className="pad">
         <Link href="/menu" className="hero reveal d1">
-          <Image src="/scenes/promo-1.jpg" alt="فايف هاندرد" fill style={{ objectFit: "cover" }} className="hero-bg" />
+          <Image src="/scenes/promo-1.jpg" alt="فايف هاندرد" fill priority style={{ objectFit: "cover" }} className="hero-bg" />
           <div className="hero-scrim" />
           <div className="hero-content">
             <span className="hero-order">
