@@ -18,3 +18,4 @@ prisma/dev.db-journal
 # misc
 .DS_Store
 *.log
+.env*

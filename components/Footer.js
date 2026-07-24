@@ -1,24 +1,40 @@
-// فوتر ثابت بأسفل كل صفحة — روابط قانونية/تعريفية بأيقونات موحّدة + بيانات السجل التجاري.
+// فوتر بسيط بعمودين نصّيين (الخدمة / قانوني) + بيانات السجل التجاري بالأسفل.
 import Link from "next/link";
 
-const LINKS = [
-  { href: "/about", icon: "🏠", label: "من نحن" },
-  { href: "/contact", icon: "💬", label: "تواصل معنا" },
-  { href: "/legal/privacy", icon: "🔒", label: "الخصوصية" },
-  { href: "/legal/terms", icon: "📄", label: "الشروط" },
+const COLUMNS = [
+  {
+    title: "الخدمة",
+    links: [
+      { href: "/", label: "الرئيسية" },
+      { href: "/menu", label: "المنيو" },
+      { href: "/about", label: "من نحن" },
+      { href: "/contact", label: "تواصل معنا" },
+    ],
+  },
+  {
+    title: "قانوني",
+    links: [
+      { href: "/legal/terms", label: "الشروط والأحكام" },
+      { href: "/legal/privacy", label: "سياسة الخصوصية" },
+    ],
+  },
 ];
 
 export default function Footer() {
   return (
     <footer className="app-footer">
-      <nav className="app-footer-grid">
-        {LINKS.map((l) => (
-          <Link key={l.href} href={l.href} className="app-footer-item">
-            <span className="app-footer-icon">{l.icon}</span>
-            <span className="app-footer-label">{l.label}</span>
-          </Link>
+      <div className="app-footer-cols">
+        {COLUMNS.map((col) => (
+          <div key={col.title} className="app-footer-col">
+            <span className="app-footer-title">{col.title}</span>
+            {col.links.map((l) => (
+              <Link key={l.href} href={l.href} className="app-footer-link">
+                {l.label}
+              </Link>
+            ))}
+          </div>
         ))}
-      </nav>
+      </div>
 
       <div className="app-footer-divider" />
 
