@@ -2,10 +2,18 @@
 // طلبات المستخدم المسجّل محميّة بجلسته؛ طلبات الضيف تُقرأ بالمعرّف (cuid غير قابل للتخمين).
 import { NextResponse } from "next/server";
 import { getSessionUserId } from "@/lib/session";
+import { rateLimit } from "@/lib/rateLimit";
 import { prisma } from "@/lib/prisma";
 import { buildTlvQrBase64, isZatcaConfigured, getSellerNameAr } from "@/lib/zatca";
 
-export async function GET(_req, { params }) {
+export async function GET(req, { params }) {
+  // حد معدّل لمنع تعداد/كشط معرّفات الطلبات عبر IP واحد
+  const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
+    || req.headers.get("x-real-ip")
+    || "unknown";
+  const rl = await rateLimit(`order-lookup:${ip}`, 60, 5 * 60 * 1000);
+  if (!rl.ok) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
+
   const order = await prisma.order.findUnique({
     where: { id: params.id },
     include: {

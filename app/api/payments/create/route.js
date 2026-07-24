@@ -2,9 +2,17 @@
 // في وضع mock يعيد مسار تأكيد داخلي؛ مع Moyasar الحقيقي يعيد رابط/توكن الاستضافة.
 import { NextResponse } from "next/server";
 import { createPaymentSchema } from "@/lib/validation";
+import { rateLimit } from "@/lib/rateLimit";
 import { prisma } from "@/lib/prisma";
 
 export async function POST(req) {
+  // حد معدّل لمنع إنشاء/استعلام سجلات دفع بكثرة (تعداد orderId أو استنزاف موارد)
+  const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
+    || req.headers.get("x-real-ip")
+    || "unknown";
+  const rl = await rateLimit(`payment-create:${ip}`, 20, 10 * 60 * 1000);
+  if (!rl.ok) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
+
   let body;
   try {
     body = await req.json();
