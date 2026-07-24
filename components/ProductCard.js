@@ -1,4 +1,5 @@
 "use client";
+import Image from "next/image";
 import { useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -8,7 +9,7 @@ import { money } from "@/data/menu";
 
 function Thumb({ p, className, emojiClass }) {
   if (p.img) {
-    return <img src={p.img} alt={p.name} className={className} loading="lazy" />;
+    return <Image src={p.img} alt={p.name} width={200} height={200} style={{ objectFit: "cover" }} className={className} />;
   }
   return (
     <div

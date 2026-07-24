@@ -1,4 +1,5 @@
 "use client";
+import Image from "next/image";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -42,7 +43,7 @@ export default function ProductPage({ params }) {
         </div>
 
         {p.img ? (
-          <img src={p.img} alt={p.name} className="stage-burger" />
+          <Image src={p.img} alt={p.name} fill style={{ objectFit: "cover" }} className="stage-burger" />
         ) : (
           <div className="stage-emoji">{p.emoji || "🍔"}</div>
         )}

@@ -1,4 +1,5 @@
 "use client";
+import Image from "next/image";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -97,7 +98,7 @@ export default function AccountPage() {
 
       <div className="pad" style={{ marginTop: 8 }}>
         <div className="brandline muted reveal">
-          <img src="/logo.jpg" alt="FIVE 500" /> FIVE 500 · فايف هاندرد
+          <Image src="/logo.jpg" alt="FIVE 500" width={24} height={24} /> FIVE 500 · فايف هاندرد
         </div>
       </div>
 

@@ -1,4 +1,5 @@
 "use client";
+import Image from "next/image";
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { I } from "@/components/Icons";
@@ -94,7 +95,7 @@ function PaymentInner() {
         <div className="paycard reveal d1">
           <div className="pc-glow glowbg" />
           <div className="pc-top">
-            <img src="/logo.jpg" alt="FIVE 500" className="pc-logo" />
+            <Image src="/logo.jpg" alt="FIVE 500" width={48} height={48} className="pc-logo" />
             <span className="pc-chip" />
           </div>
           <div className="pc-num ltr">•••• •••• •••• 0500</div>
