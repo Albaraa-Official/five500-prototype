@@ -22,7 +22,7 @@ export async function POST(req) {
   if (!phone) return NextResponse.json({ error: "invalid_phone" }, { status: 400 });
 
   // حد محاولات التحقق: 10 لكل رقم خلال 10 دقائق
-  const rl = rateLimit(`verify:${phone}`, 10, 10 * 60 * 1000);
+  const rl = await rateLimit(`verify:${phone}`, 10, 10 * 60 * 1000);
   if (!rl.ok) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
 
   const ok = await verifyOtp(phone, parsed.data.code);

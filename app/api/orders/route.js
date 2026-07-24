@@ -24,7 +24,7 @@ export async function POST(req) {
   if (!phone) return NextResponse.json({ error: "invalid_phone" }, { status: 400 });
 
   // حد المعدّل لمنع إنشاء طلبات بكثرة
-  const rl = rateLimit(`order:${phone}`, 20, 10 * 60 * 1000);
+  const rl = await rateLimit(`order:${phone}`, 20, 10 * 60 * 1000);
   if (!rl.ok) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
 
   let priced;
