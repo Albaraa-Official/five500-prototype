@@ -59,12 +59,27 @@ export default function CheckoutPage() {
     setPlateNumbers(v);
   };
 
+  const IDEM_KEY_STORAGE = "f500-order-idem-key";
+
+  // مفتاح تكرار ثابت لكل جلسة إتمام طلب — يبقى في sessionStorage عبر زر الرجوع
+  // لمنع إنشاء طلب مكرر، ويُمسح بعد نجاح الطلب حتى لا يمنع الطلب الشرعي التالي.
+  const getIdempotencyKey = () => {
+    if (typeof window === "undefined") return null;
+    let key = window.sessionStorage.getItem(IDEM_KEY_STORAGE);
+    if (!key) {
+      key = crypto.randomUUID();
+      window.sessionStorage.setItem(IDEM_KEY_STORAGE, key);
+    }
+    return key;
+  };
+
   const submit = async () => {
     if (!name.trim() || !phone.trim() || items.length === 0) return;
     setSubmitting(true);
     setError("");
     try {
       const plate = [plateLetters, plateNumbers].filter(Boolean).join(" ").trim();
+      const idempotencyKey = getIdempotencyKey();
       const res = await fetch("/api/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -75,6 +90,7 @@ export default function CheckoutPage() {
           plate: plate || null,
           discountCode: discount?.code || null,
           notes: notes.trim() || null,
+          ...(idempotencyKey ? { idempotencyKey } : {}),
         }),
       });
       const data = await res.json();
@@ -83,6 +99,8 @@ export default function CheckoutPage() {
         setSubmitting(false);
         return;
       }
+      // نجح الطلب — امسح مفتاح التكرار حتى لا يمنع الطلب الشرعي التالي
+      if (typeof window !== "undefined") window.sessionStorage.removeItem(IDEM_KEY_STORAGE);
       // إلى الدفع مع معرّف الطلب — الإجمالي المعتمد يأتي من السيرفر هناك.
       router.push(`/payment?order=${data.orderId}`);
     } catch (e) {

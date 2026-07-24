@@ -81,6 +81,7 @@ model Order {
   plate          String?
   orderType      String      @default("pickup") // "pickup" | "delivery"
   notes          String?
+  idempotencyKey String?     @unique // مفتاح تكرار — يمنع إنشاء طلب مكرر عند إعادة الإرسال (زر الرجوع)
   createdAt      DateTime    @default(now())
   updatedAt      DateTime    @updatedAt
   user           User?       @relation(fields: [userId], references: [id])

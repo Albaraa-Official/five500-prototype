@@ -39,6 +39,23 @@ export async function POST(req) {
   }
 
   const userId = getSessionUserId();
+  const idempotencyKey = parsed.data.idempotencyKey || null;
+
+  // إذا أُرسل مفتاح تكرار وسبق استخدامه، أعد نفس الطلب الموجود بدل إنشاء طلب مكرر
+  // (يحمي من إعادة الإرسال عبر زر الرجوع بعد نجاح الطلب)
+  if (idempotencyKey) {
+    const existing = await prisma.order.findUnique({
+      where: { idempotencyKey },
+      select: { id: true, totalHalalas: true, status: true },
+    });
+    if (existing) {
+      return NextResponse.json({
+        orderId: existing.id,
+        totalHalalas: existing.totalHalalas,
+        status: existing.status,
+      });
+    }
+  }
 
   try {
     const order = await prisma.$transaction(async (tx) => {
@@ -75,6 +92,7 @@ export async function POST(req) {
           plate: parsed.data.plate || null,
           orderType: parsed.data.orderType || "pickup",
           notes: parsed.data.notes || null,
+          idempotencyKey,
           items: {
             create: priced.lines.map((l) => ({
               productId: l.productId,
@@ -96,6 +114,20 @@ export async function POST(req) {
   } catch (err) {
     if (err.code === "DISCOUNT_EXHAUSTED") {
       return NextResponse.json({ error: "discount_exhausted" }, { status: 409 });
+    }
+    // سباق: طلبان بنفس مفتاح التكرار وصلا في نفس اللحظة — أعد الطلب الذي فاز بالسباق
+    if (idempotencyKey && err.code === "P2002" && err.meta?.target?.includes?.("idempotencyKey")) {
+      const existing = await prisma.order.findUnique({
+        where: { idempotencyKey },
+        select: { id: true, totalHalalas: true, status: true },
+      });
+      if (existing) {
+        return NextResponse.json({
+          orderId: existing.id,
+          totalHalalas: existing.totalHalalas,
+          status: existing.status,
+        });
+      }
     }
     console.error("create order failed:", err);
     return NextResponse.json({ error: "internal_error" }, { status: 500 });
