@@ -22,11 +22,27 @@ const rubik = Rubik({
   display: "swap",
 });
 
+const SITE_TITLE = "FIVE 500 — فايف هاندرد";
+const SITE_DESCRIPTION = "تجربة برجر فاخرة · نموذج أولي";
+
 export const metadata = {
-  title: "FIVE 500 — فايف هاندرد",
-  description: "تجربة برجر فاخرة · نموذج أولي",
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://thefive500.com"),
+  title: SITE_TITLE,
+  description: SITE_DESCRIPTION,
   manifest: "/manifest.json",
   appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "FIVE 500" },
+  openGraph: {
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
+    locale: "ar_SA",
+    type: "website",
+    images: ["/logo-transparent.png"],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
+  },
 };
 
 export const viewport = {
