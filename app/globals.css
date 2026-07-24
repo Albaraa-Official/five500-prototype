@@ -24,6 +24,13 @@
   --yellow: #f5a623;
   --yellow-warm: #ffc24b;
 
+  /* Scoped badge orange — darker than --orange so white badge text (tags like
+     "الأكثر طلباً" / "جريء" / "حار") clears WCAG AA (4.5:1). The brand
+     --orange itself stays untouched; only these small solid-fill text
+     badges use this darker shade. */
+  --orange-badge: #a8431b;
+  --orange-badge-2: #8a3714;
+
   /* Text */
   --text: #f6f4f1;
   --text-2: #b7b4bd;
@@ -635,7 +642,7 @@ select:focus-visible,
   border-radius: 22px;
   padding: 12px;
   position: relative;
-  transition: border-color 0.25s, transform 0.2s;
+  transition: border-color 0.25s cubic-bezier(0.22, 1, 0.36, 1), transform 0.2s cubic-bezier(0.22, 1, 0.36, 1);
 }
 .prow:active {
   transform: scale(0.985);
@@ -749,7 +756,7 @@ select:focus-visible,
   border: 1px solid var(--hairline);
   border-radius: 26px;
   overflow: hidden;
-  transition: transform 0.22s, border-color 0.22s;
+  transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.22s cubic-bezier(0.22, 1, 0.36, 1);
 }
 .fcard:active {
   transform: scale(0.97);
@@ -849,7 +856,7 @@ select:focus-visible,
   border: 1px solid var(--hairline);
   border-radius: 24px;
   overflow: hidden;
-  transition: transform 0.2s, border-color 0.2s;
+  transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.2s cubic-bezier(0.22, 1, 0.36, 1);
 }
 .gcard:active {
   transform: scale(0.98);
@@ -907,9 +914,11 @@ select:focus-visible,
   font-size: 10px;
   font-weight: 800;
   color: #fff;
-  background: rgba(236, 106, 44, 0.92);
+  background: linear-gradient(140deg, var(--orange-badge), var(--orange-badge-2));
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
   padding: 4px 9px;
   border-radius: 9px;
+  box-shadow: 0 4px 12px -4px rgba(0, 0, 0, 0.5);
 }
 .gcard-rate {
   position: absolute;
@@ -1308,6 +1317,65 @@ select:focus-visible,
 .app-footer-copy {
   font-size: 11px;
   color: var(--text-3);
+}
+
+/* ============================================================
+   Skeleton loaders — shared shimmer used while initial fetch() calls
+   are pending (menu list, order history, account, success polling),
+   so pages never render a blank/undefined flash before data arrives.
+   ============================================================ */
+@keyframes skeletonShimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--r-sm);
+  background: linear-gradient(100deg, var(--surface) 30%, var(--surface-2) 50%, var(--surface) 70%);
+  background-size: 250% 100%;
+  animation: skeletonShimmer 1.6s ease-in-out infinite;
+}
+.skeleton-text {
+  height: 13px;
+  border-radius: 7px;
+}
+.skeleton-circle {
+  border-radius: 50%;
+}
+/* Order-history / account-row style skeleton card */
+.skeleton-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: 18px;
+  padding: 16px;
+}
+/* Menu grid-card skeleton */
+.skeleton-gcard {
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: 24px;
+  overflow: hidden;
+}
+.skeleton-gcard .skeleton-media {
+  aspect-ratio: 1;
+}
+.skeleton-gcard .skeleton-body {
+  padding: 13px 14px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+    background: var(--surface-2);
+  }
 }
 
 /* ============================================================

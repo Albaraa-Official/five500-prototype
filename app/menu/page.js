@@ -59,7 +59,11 @@ function MenuInner() {
         ))}
       </div>
       {list.length === 0 && (
-        <div className="pad empty muted">ما لقينا نتائج… جرّب كلمة ثانية</div>
+        <div className="pad empty reveal">
+          <span className="empty-ic">🔍</span>
+          <b>ما لقينا نتائج</b>
+          <p className="muted">جرّب كلمة ثانية أو تصفّح قسم مختلف</p>
+        </div>
       )}
 
       <style jsx>{`
@@ -111,8 +115,23 @@ function MenuInner() {
         }
         .empty {
           text-align: center;
-          padding: 50px 0;
-          font-weight: 600;
+          padding: 50px 20px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+        }
+        .empty-ic {
+          font-size: 38px;
+          margin-bottom: 10px;
+          opacity: 0.8;
+        }
+        .empty b {
+          font-size: 16px;
+          font-weight: 800;
+        }
+        .empty p {
+          font-size: 13.5px;
+          margin-top: 5px;
         }
       `}</style>
     </div>

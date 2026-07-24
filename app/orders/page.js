@@ -68,10 +68,28 @@ export default function OrdersPage() {
         </div>
       )}
 
-      {!unauthed && !loadError && orders === null && <p className="muted" style={{ textAlign: "center", padding: 40 }}>جاري التحميل…</p>}
+      {!unauthed && !loadError && orders === null && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 16 }} aria-hidden>
+          {[0, 1, 2].map((i) => (
+            <div className="skeleton-row" key={i}>
+              <div className="skeleton skeleton-circle" style={{ width: 40, height: 40, flexShrink: 0 }} />
+              <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 8 }}>
+                <div className="skeleton skeleton-text" style={{ width: "55%" }} />
+                <div className="skeleton skeleton-text" style={{ width: "80%" }} />
+                <div className="skeleton skeleton-text" style={{ width: "35%" }} />
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {!unauthed && !loadError && orders?.length === 0 && (
-        <p className="muted" style={{ textAlign: "center", padding: 40 }}>لا توجد طلبات بعد.</p>
+        <div className="card" style={{ padding: "40px 24px", textAlign: "center", marginTop: 20 }}>
+          <span style={{ fontSize: 40, display: "block", marginBottom: 10 }}>🧾</span>
+          <b style={{ fontSize: 16, display: "block", marginBottom: 4 }}>لا توجد طلبات بعد</b>
+          <p className="muted" style={{ fontSize: 13.5, marginBottom: 18 }}>أول طلب لك بينتظرك… جرّب أشهى أصناف فايف هاندرد</p>
+          <Link href="/menu" className="btn btn-primary" style={{ padding: "0 26px", height: 46, display: "inline-flex", alignItems: "center" }}>تصفّح المنيو</Link>
+        </div>
       )}
 
       {!unauthed && !loadError && orders && orders.length > 0 && (

@@ -46,7 +46,25 @@ export default function AccountPage() {
         <h1 className="display" style={{ fontSize: 28, fontWeight: 900 }}>حسابي</h1>
       </header>
 
-      {!loading && !user ? (
+      {loading ? (
+        <div className="pad" aria-hidden>
+          <div className="profile card reveal d1">
+            <div className="skeleton skeleton-circle" style={{ width: 56, height: 56, flexShrink: 0 }} />
+            <div className="p-info" style={{ gap: 8 }}>
+              <div className="skeleton skeleton-text" style={{ width: "45%" }} />
+              <div className="skeleton skeleton-text" style={{ width: "30%" }} />
+            </div>
+          </div>
+          <div className="pad stats" style={{ paddingInline: 0, marginTop: 14 }}>
+            {[0, 1, 2].map((i) => (
+              <div className="card" key={i} style={{ flex: 1, padding: "16px 10px" }}>
+                <div className="skeleton skeleton-text" style={{ width: "50%", height: 20, margin: "0 auto 8px" }} />
+                <div className="skeleton skeleton-text" style={{ width: "70%", height: 10, margin: "0 auto" }} />
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : !user ? (
         // غير مسجّل — دعوة لتسجيل الدخول
         <div className="pad">
           <div className="profile card reveal d1" style={{ flexDirection: "column", alignItems: "stretch", gap: 14, textAlign: "center", padding: 24 }}>

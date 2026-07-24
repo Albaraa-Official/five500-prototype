@@ -108,10 +108,15 @@ function SuccessInner() {
             <span className="muted">رقم الطلب</span>
             <b className="price">{orderNo}</b>
           </div>
-          {order && (
+          {order ? (
             <div className="oc-row" style={{ marginTop: 8 }}>
               <span className="muted">الإجمالي</span>
               <b className="price">{formatSAR(order.totalHalalas)}</b>
+            </div>
+          ) : (
+            <div className="oc-row" style={{ marginTop: 8 }} aria-hidden>
+              <span className="muted">الإجمالي</span>
+              <div className="skeleton skeleton-text" style={{ width: 70 }} />
             </div>
           )}
           <div className="oc-divider" />
