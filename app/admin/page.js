@@ -18,17 +18,22 @@ export default function AdminPage() {
   const [tab, setTab] = useState("orders");
 
   useEffect(() => {
-    fetch("/api/admin/login").then((r) => r.json()).then((d) => setAuthed(d.admin)).catch(() => setAuthed(false));
+    fetch("/api/admin/login").then((r) => r.json()).then((d) => setAuthed(d.admin)).catch((e) => { console.error("admin login check failed", e); setAuthed(false); });
   }, []);
 
   const login = async () => {
     setError("");
-    const res = await fetch("/api/admin/login", {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ passcode }),
-    });
-    if (res.ok) setAuthed(true);
-    else setError("كلمة المرور غير صحيحة.");
+    try {
+      const res = await fetch("/api/admin/login", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ passcode }),
+      });
+      if (res.ok) setAuthed(true);
+      else setError("كلمة المرور غير صحيحة.");
+    } catch (e) {
+      console.error("admin login failed", e);
+      setError("تعذّر الاتصال بالخادم.");
+    }
   };
 
   if (authed === null) return <div className="app pad"><p style={{ marginTop: 40 }}>…</p></div>;
@@ -73,6 +78,15 @@ export default function AdminPage() {
   );
 }
 
+function RetryBlock({ message, onRetry }) {
+  return (
+    <div className="card" style={{ padding: 24, textAlign: "center" }}>
+      <p style={{ color: "#e05252", fontSize: 13.5, fontWeight: 700, marginBottom: 12 }}>⚠️ {message}</p>
+      <button className="btn btn-primary" onClick={onRetry} style={{ padding: "0 24px", height: 42 }}>حاول مجدداً</button>
+    </div>
+  );
+}
+
 /* ---------- الطلبات ---------- */
 const NEXT_ACTION = {
   paid: { to: "preparing", label: "ابدأ التحضير 👨‍🍳" },
@@ -85,10 +99,15 @@ const STATUS_COLOR = { paid: "#f5a623", preparing: "#ec6a2c", ready: "#46c37b", 
 function OrdersTab() {
   const [orders, setOrders] = useState([]);
   const [filter, setFilter] = useState("");
+  const [error, setError] = useState(false);
+  const [actionError, setActionError] = useState("");
 
   const load = useCallback(() => {
     const q = filter ? `?status=${filter}` : "";
-    fetch(`/api/admin/orders${q}`).then((r) => r.json()).then((d) => { if (d.orders) setOrders(d.orders); }).catch(() => {});
+    fetch(`/api/admin/orders${q}`)
+      .then((r) => r.json())
+      .then((d) => { if (d.orders) { setOrders(d.orders); setError(false); } else setError(true); })
+      .catch((e) => { console.error("admin orders load failed", e); setError(true); });
   }, [filter]);
 
   useEffect(() => {
@@ -98,11 +117,18 @@ function OrdersTab() {
   }, [load]);
 
   const setStatus = async (id, status) => {
-    const res = await fetch(`/api/admin/orders/${id}`, {
-      method: "PATCH", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status }),
-    });
-    if (res.ok) load();
+    setActionError("");
+    try {
+      const res = await fetch(`/api/admin/orders/${id}`, {
+        method: "PATCH", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      });
+      if (res.ok) load();
+      else setActionError("تعذّر تحديث حالة الطلب. حاول مجدداً.");
+    } catch (e) {
+      console.error("admin order status update failed", e);
+      setActionError("تعذّر الاتصال بالخادم.");
+    }
   };
 
   const filters = [["", "الكل"], ["paid", "جديد"], ["preparing", "تحضير"], ["ready", "جاهز"], ["completed", "مكتمل"]];
@@ -119,7 +145,13 @@ function OrdersTab() {
         ))}
       </div>
 
-      {orders.length === 0 ? (
+      {actionError && (
+        <p style={{ color: "#e05252", fontSize: 12.5, fontWeight: 700, marginBottom: 10, textAlign: "center" }}>⚠️ {actionError}</p>
+      )}
+
+      {error ? (
+        <RetryBlock message="تعذّر تحميل الطلبات." onRetry={load} />
+      ) : orders.length === 0 ? (
         <p className="muted" style={{ textAlign: "center", padding: 40 }}>لا طلبات في هذه الحالة.</p>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -156,38 +188,59 @@ function OrdersTab() {
 /* ---------- المنتجات ---------- */
 function ProductsTab() {
   const [products, setProducts] = useState(null);
+  const [loadError, setLoadError] = useState(false);
   const [showNew, setShowNew] = useState(false);
   const [form, setForm] = useState({ id: "", name: "", category: "", emoji: "", priceRegHalalas: "", priceLargeHalalas: "" });
   const [err, setErr] = useState("");
+  const [actionError, setActionError] = useState("");
 
   const load = useCallback(() => {
-    fetch("/api/admin/products").then((r) => r.json()).then((d) => { if (d.products) setProducts(d.products); }).catch(() => {});
+    fetch("/api/admin/products")
+      .then((r) => r.json())
+      .then((d) => { if (d.products) { setProducts(d.products); setLoadError(false); } else setLoadError(true); })
+      .catch((e) => { console.error("admin products load failed", e); setLoadError(true); });
   }, []);
   useEffect(load, [load]);
 
   const toggleActive = async (p) => {
-    await fetch(`/api/admin/products/${p.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ active: !p.active }) });
-    load();
+    setActionError("");
+    try {
+      const res = await fetch(`/api/admin/products/${p.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ active: !p.active }) });
+      if (!res.ok) throw new Error("bad status");
+      load();
+    } catch (e) { console.error("toggleActive failed", e); setActionError("تعذّر تحديث حالة المنتج."); }
   };
 
   const updatePrice = async (p, size, value) => {
     const halalas = Math.round(parseFloat(value) * 100);
     if (isNaN(halalas)) return;
     const key = size === "reg" ? "priceRegHalalas" : "priceLargeHalalas";
-    await fetch(`/api/admin/products/${p.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ [key]: halalas }) });
-    load();
+    setActionError("");
+    try {
+      const res = await fetch(`/api/admin/products/${p.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ [key]: halalas }) });
+      if (!res.ok) throw new Error("bad status");
+      load();
+    } catch (e) { console.error("updatePrice failed", e); setActionError("تعذّر تحديث السعر."); }
   };
 
   const updateVariant = async (p, size, value) => {
     const key = size === "reg" ? "regLoyverseVariantId" : "largeLoyverseVariantId";
-    await fetch(`/api/admin/products/${p.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ [key]: value || null }) });
-    load();
+    setActionError("");
+    try {
+      const res = await fetch(`/api/admin/products/${p.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ [key]: value || null }) });
+      if (!res.ok) throw new Error("bad status");
+      load();
+    } catch (e) { console.error("updateVariant failed", e); setActionError("تعذّر تحديث Loyverse variant."); }
   };
 
   const remove = async (p) => {
     if (!confirm(`حذف ${p.name}؟`)) return;
-    await fetch(`/api/admin/products/${p.id}`, { method: "DELETE" });
-    load();
+    setActionError("");
+    try {
+      const res = await fetch(`/api/admin/products/${p.id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("bad status");
+      load();
+    } catch (e) { console.error("remove product failed", e); setActionError("تعذّر حذف المنتج."); }
   };
 
   const create = async () => {
@@ -211,10 +264,12 @@ function ProductsTab() {
     }
   };
 
+  if (products === null && loadError) return <RetryBlock message="تعذّر تحميل المنتجات." onRetry={load} />;
   if (products === null) return <p className="muted" style={{ textAlign: "center", padding: 40 }}>جاري التحميل…</p>;
 
   return (
     <div>
+      {actionError && <p style={{ color: "#e05252", fontSize: 12.5, fontWeight: 700, marginBottom: 10, textAlign: "center" }}>⚠️ {actionError}</p>}
       <button className="btn btn-primary btn-block" onClick={() => setShowNew((s) => !s)} style={{ marginBottom: 14 }}>
         {showNew ? "إلغاء" : "+ منتج جديد"}
       </button>
@@ -299,39 +354,56 @@ function PriceInput({ label, value, onSave }) {
 /* ---------- كودات الخصم ---------- */
 function DiscountsTab() {
   const [discounts, setDiscounts] = useState(null);
+  const [loadError, setLoadError] = useState(false);
   const [form, setForm] = useState({ code: "", type: "percent", value: "", maxUses: "" });
   const [err, setErr] = useState("");
+  const [actionError, setActionError] = useState("");
 
   const load = useCallback(() => {
-    fetch("/api/admin/discounts").then((r) => r.json()).then((d) => { if (d.discounts) setDiscounts(d.discounts); }).catch(() => {});
+    fetch("/api/admin/discounts")
+      .then((r) => r.json())
+      .then((d) => { if (d.discounts) { setDiscounts(d.discounts); setLoadError(false); } else setLoadError(true); })
+      .catch((e) => { console.error("admin discounts load failed", e); setLoadError(true); });
   }, []);
   useEffect(load, [load]);
 
   const create = async () => {
     setErr("");
     if (!form.code || !form.value) { setErr("عبّي الحقول المطلوبة."); return; }
-    const res = await fetch("/api/admin/discounts", {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ code: form.code.trim(), type: form.type, value: parseInt(form.value, 10), maxUses: form.maxUses ? parseInt(form.maxUses, 10) : null }),
-    });
-    if (res.ok) { setForm({ code: "", type: "percent", value: "", maxUses: "" }); load(); }
-    else { const d = await res.json(); setErr(d.error === "code_exists" ? "الكود مستخدم بالفعل." : "تعذّر الإنشاء."); }
+    try {
+      const res = await fetch("/api/admin/discounts", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: form.code.trim(), type: form.type, value: parseInt(form.value, 10), maxUses: form.maxUses ? parseInt(form.maxUses, 10) : null }),
+      });
+      if (res.ok) { setForm({ code: "", type: "percent", value: "", maxUses: "" }); load(); }
+      else { const d = await res.json(); setErr(d.error === "code_exists" ? "الكود مستخدم بالفعل." : "تعذّر الإنشاء."); }
+    } catch (e) { console.error("create discount failed", e); setErr("تعذّر الاتصال بالخادم."); }
   };
 
   const toggle = async (d) => {
-    await fetch(`/api/admin/discounts/${d.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ active: !d.active }) });
-    load();
+    setActionError("");
+    try {
+      const res = await fetch(`/api/admin/discounts/${d.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ active: !d.active }) });
+      if (!res.ok) throw new Error("bad status");
+      load();
+    } catch (e) { console.error("toggle discount failed", e); setActionError("تعذّر تحديث الكود."); }
   };
   const remove = async (d) => {
     if (!confirm(`حذف الكود ${d.code}؟`)) return;
-    await fetch(`/api/admin/discounts/${d.id}`, { method: "DELETE" });
-    load();
+    setActionError("");
+    try {
+      const res = await fetch(`/api/admin/discounts/${d.id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("bad status");
+      load();
+    } catch (e) { console.error("remove discount failed", e); setActionError("تعذّر حذف الكود."); }
   };
 
+  if (discounts === null && loadError) return <RetryBlock message="تعذّر تحميل الخصومات." onRetry={load} />;
   if (discounts === null) return <p className="muted" style={{ textAlign: "center", padding: 40 }}>جاري التحميل…</p>;
 
   return (
     <div>
+      {actionError && <p style={{ color: "#e05252", fontSize: 12.5, fontWeight: 700, marginBottom: 10, textAlign: "center" }}>⚠️ {actionError}</p>}
       <div className="card" style={{ padding: 14, marginBottom: 14, display: "flex", flexDirection: "column", gap: 8 }}>
         <Field label="الكود" value={form.code} onChange={(v) => setForm((f) => ({ ...f, code: v }))} />
         <div style={{ display: "flex", gap: 8 }}>
@@ -344,6 +416,9 @@ function DiscountsTab() {
         <button className="btn btn-primary" onClick={create}>إنشاء كود</button>
       </div>
 
+      {discounts.length === 0 && (
+        <p className="muted" style={{ textAlign: "center", padding: 24 }}>لا توجد أكواد خصم بعد.</p>
+      )}
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         {discounts.map((d) => (
           <div key={d.id} className="card" style={{ padding: 14, opacity: d.active ? 1 : 0.5, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -367,10 +442,17 @@ function DiscountsTab() {
 /* ---------- العملاء ---------- */
 function CustomersTab() {
   const [customers, setCustomers] = useState(null);
-  useEffect(() => {
-    fetch("/api/admin/customers").then((r) => r.json()).then((d) => { if (d.customers) setCustomers(d.customers); }).catch(() => {});
-  }, []);
+  const [loadError, setLoadError] = useState(false);
 
+  const load = useCallback(() => {
+    fetch("/api/admin/customers")
+      .then((r) => r.json())
+      .then((d) => { if (d.customers) { setCustomers(d.customers); setLoadError(false); } else setLoadError(true); })
+      .catch((e) => { console.error("admin customers load failed", e); setLoadError(true); });
+  }, []);
+  useEffect(load, [load]);
+
+  if (customers === null && loadError) return <RetryBlock message="تعذّر تحميل العملاء." onRetry={load} />;
   if (customers === null) return <p className="muted" style={{ textAlign: "center", padding: 40 }}>جاري التحميل…</p>;
   if (customers.length === 0) return <p className="muted" style={{ textAlign: "center", padding: 40 }}>لا يوجد عملاء بعد.</p>;
 
@@ -395,10 +477,17 @@ function CustomersTab() {
 /* ---------- الإحصائيات ---------- */
 function StatsTab() {
   const [stats, setStats] = useState(null);
-  useEffect(() => {
-    fetch("/api/admin/stats").then((r) => r.json()).then(setStats).catch(() => {});
-  }, []);
+  const [loadError, setLoadError] = useState(false);
 
+  const load = useCallback(() => {
+    fetch("/api/admin/stats")
+      .then((r) => r.json())
+      .then((d) => { if (d && d.today) { setStats(d); setLoadError(false); } else setLoadError(true); })
+      .catch((e) => { console.error("admin stats load failed", e); setLoadError(true); });
+  }, []);
+  useEffect(load, [load]);
+
+  if (!stats && loadError) return <RetryBlock message="تعذّر تحميل الإحصائيات." onRetry={load} />;
   if (!stats) return <p className="muted" style={{ textAlign: "center", padding: 40 }}>جاري التحميل…</p>;
 
   return (
@@ -451,32 +540,48 @@ const STATUS_BADGE = {
 
 function IntegrationsTab() {
   const [data, setData] = useState(null);
+  const [loadError, setLoadError] = useState(false);
   const [storeIdDraft, setStoreIdDraft] = useState("");
   const [testing, setTesting] = useState(false);
   const [testMsg, setTestMsg] = useState(null);
+  const [actionError, setActionError] = useState("");
 
   const load = useCallback(() => {
-    fetch("/api/admin/integrations").then((r) => r.json()).then((d) => {
-      setData(d);
-      const loyverse = d.integrations?.find((i) => i.key === "loyverse");
-      setStoreIdDraft(loyverse?.config?.storeId || "");
-    }).catch(() => {});
+    fetch("/api/admin/integrations")
+      .then((r) => r.json())
+      .then((d) => {
+        if (!d || !d.integrations) { setLoadError(true); return; }
+        setData(d);
+        setLoadError(false);
+        const loyverse = d.integrations?.find((i) => i.key === "loyverse");
+        setStoreIdDraft(loyverse?.config?.storeId || "");
+      })
+      .catch((e) => { console.error("admin integrations load failed", e); setLoadError(true); });
   }, []);
   useEffect(load, [load]);
 
+  if (data === null && loadError) return <RetryBlock message="تعذّر تحميل بيانات التكاملات." onRetry={load} />;
   if (data === null) return <p className="muted" style={{ textAlign: "center", padding: 40 }}>جاري التحميل…</p>;
 
   const loyverse = data.integrations.find((i) => i.key === "loyverse");
   const badge = STATUS_BADGE[loyverse?.status] || STATUS_BADGE.unknown;
 
   const toggleLoyverse = async (enabled) => {
-    await fetch("/api/admin/integrations/loyverse", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ enabled }) });
-    load();
+    setActionError("");
+    try {
+      const res = await fetch("/api/admin/integrations/loyverse", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ enabled }) });
+      if (!res.ok) throw new Error("bad status");
+      load();
+    } catch (e) { console.error("toggle loyverse failed", e); setActionError("تعذّر تحديث حالة التكامل."); }
   };
 
   const saveStoreId = async () => {
-    await fetch("/api/admin/integrations/loyverse", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ config: { storeId: storeIdDraft.trim() } }) });
-    load();
+    setActionError("");
+    try {
+      const res = await fetch("/api/admin/integrations/loyverse", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ config: { storeId: storeIdDraft.trim() } }) });
+      if (!res.ok) throw new Error("bad status");
+      load();
+    } catch (e) { console.error("save storeId failed", e); setActionError("تعذّر حفظ Store ID."); }
   };
 
   const testConnection = async () => {
@@ -496,6 +601,7 @@ function IntegrationsTab() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      {actionError && <p style={{ color: "#e05252", fontSize: 12.5, fontWeight: 700, textAlign: "center" }}>⚠️ {actionError}</p>}
       {/* Moyasar */}
       <div className="card" style={{ padding: 16 }}>
         <b style={{ fontSize: 15 }}>💳 Moyasar</b>

@@ -23,12 +23,16 @@ export default function AccountPage() {
     fetch("/api/auth/me")
       .then((r) => r.json())
       .then((d) => setUser(d.user))
-      .catch(() => {})
+      .catch((e) => console.error("auth/me failed", e))
       .finally(() => setLoading(false));
   }, []);
 
   const logout = async () => {
-    await fetch("/api/auth/logout", { method: "POST" });
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+    } catch (e) {
+      console.error("logout failed", e);
+    }
     setUser(null);
   };
 

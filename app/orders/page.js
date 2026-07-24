@@ -28,16 +28,24 @@ export default function OrdersPage() {
   const router = useRouter();
   const [orders, setOrders] = useState(null);
   const [unauthed, setUnauthed] = useState(false);
+  const [loadError, setLoadError] = useState(false);
 
-  useEffect(() => {
+  const load = () => {
+    setLoadError(false);
     fetch("/api/orders/mine")
       .then((r) => {
         if (r.status === 401) { setUnauthed(true); return null; }
         return r.json();
       })
-      .then((d) => { if (d?.orders) setOrders(d.orders); })
-      .catch(() => setOrders([]));
-  }, []);
+      .then((d) => {
+        if (d === null) return; // unauthed, handled above
+        if (d?.orders) setOrders(d.orders);
+        else setLoadError(true);
+      })
+      .catch((e) => { console.error("orders/mine load failed", e); setLoadError(true); });
+  };
+
+  useEffect(load, []);
 
   return (
     <div className="app pad" style={{ paddingBottom: 40 }}>
@@ -53,13 +61,20 @@ export default function OrdersPage() {
         </div>
       )}
 
-      {!unauthed && orders === null && <p className="muted" style={{ textAlign: "center", padding: 40 }}>جاري التحميل…</p>}
+      {!unauthed && loadError && (
+        <div className="card" style={{ padding: 24, textAlign: "center", marginTop: 20 }}>
+          <p style={{ color: "#e05252", fontSize: 13.5, fontWeight: 700, marginBottom: 12 }}>⚠️ تعذّر تحميل طلباتك.</p>
+          <button className="btn btn-primary" onClick={load} style={{ padding: "0 24px", height: 42 }}>حاول مجدداً</button>
+        </div>
+      )}
 
-      {!unauthed && orders?.length === 0 && (
+      {!unauthed && !loadError && orders === null && <p className="muted" style={{ textAlign: "center", padding: 40 }}>جاري التحميل…</p>}
+
+      {!unauthed && !loadError && orders?.length === 0 && (
         <p className="muted" style={{ textAlign: "center", padding: 40 }}>لا توجد طلبات بعد.</p>
       )}
 
-      {!unauthed && orders && orders.length > 0 && (
+      {!unauthed && !loadError && orders && orders.length > 0 && (
         <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 16 }}>
           {orders.map((o) => (
             <Link key={o.id} href={`/success?order=${o.id}`} className="card" style={{ padding: 16, borderRadius: 18, display: "block" }}>

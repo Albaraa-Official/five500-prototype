@@ -13,6 +13,7 @@ function SuccessInner() {
   const orderId = sp.get("order");
   const [order, setOrder] = useState(null);
   const [zatcaQrImg, setZatcaQrImg] = useState(null);
+  const [loadError, setLoadError] = useState(false);
 
   useEffect(() => {
     if (!order?.zatcaQr) {
@@ -31,11 +32,21 @@ function SuccessInner() {
   useEffect(() => {
     if (!orderId) return;
     let alive = true;
+    let failCount = 0;
     const poll = () =>
       fetch(`/api/orders/${orderId}`)
         .then((r) => r.json())
-        .then((d) => alive && d.order && setOrder(d.order))
-        .catch(() => {});
+        .then((d) => {
+          if (!alive) return;
+          if (d.order) { setOrder(d.order); setLoadError(false); failCount = 0; }
+          else { failCount += 1; if (failCount >= 2) setLoadError(true); }
+        })
+        .catch((e) => {
+          console.error("order poll failed", e);
+          if (!alive) return;
+          failCount += 1;
+          if (failCount >= 2) setLoadError(true);
+        });
     poll();
     // تتبّع حيّ: نحدّث الحالة كل 8 ثوانٍ حتى يكتمل الطلب
     const t = setInterval(() => {
@@ -51,6 +62,29 @@ function SuccessInner() {
   // رقم طلب مختصر مقروء من معرّف cuid
   const orderNo = order ? `F500-${order.id.slice(-6).toUpperCase()}` : "…";
   const step = order ? (STATUS_STEP[order.status] ?? 0) : 0;
+
+  if (!orderId) {
+    return (
+      <div className="app pad" style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "70vh", textAlign: "center", gap: 14 }}>
+        <span style={{ fontSize: 48 }}>🧾</span>
+        <h1 style={{ fontSize: 20, fontWeight: 900 }}>لا يوجد طلب لعرضه</h1>
+        <p className="muted" style={{ fontSize: 14 }}>ابدأ من السلة لإتمام طلب جديد.</p>
+        <Link href="/menu" className="btn btn-primary" style={{ padding: "0 28px", height: 48, display: "inline-flex", alignItems: "center" }}>تصفّح المنيو</Link>
+      </div>
+    );
+  }
+
+  if (loadError && !order) {
+    return (
+      <div className="app pad" style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "70vh", textAlign: "center", gap: 14 }}>
+        <span style={{ fontSize: 48 }}>😕</span>
+        <h1 style={{ fontSize: 20, fontWeight: 900 }}>تعذّر تحميل حالة طلبك</h1>
+        <p className="muted" style={{ fontSize: 14 }}>تحقق من اتصالك بالإنترنت وحاول مجدداً.</p>
+        <button className="btn btn-primary" onClick={() => window.location.reload()} style={{ padding: "0 28px", height: 48 }}>حاول مجدداً</button>
+        <Link href="/account" className="btn btn-ghost" style={{ padding: "0 28px", height: 48, display: "inline-flex", alignItems: "center" }}>عرض طلباتي</Link>
+      </div>
+    );
+  }
 
   return (
     <div className="app success">
