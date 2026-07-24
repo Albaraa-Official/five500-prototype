@@ -21,6 +21,10 @@ export async function GET(_req, { params }) {
     if (uid !== order.userId) return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
 
+  const uid = getSessionUserId();
+  // رقم الجوال يُعاد للمستخدم المسجّل فقط، لا لطلبات الضيوف
+  const showPhone = !!order.userId && uid === order.userId;
+
   return NextResponse.json({
     order: {
       id: order.id,
@@ -29,6 +33,7 @@ export async function GET(_req, { params }) {
       vatHalalas: order.vatHalalas,
       totalHalalas: order.totalHalalas,
       customerName: order.customerName,
+      ...(showPhone ? { customerPhone: order.customerPhone } : {}),
       plate: order.plate,
       createdAt: order.createdAt,
       paymentStatus: order.payment?.status || null,

@@ -10,8 +10,14 @@ export async function POST(req) {
   const raw = await req.text();
   const secret = process.env.MOYASAR_WEBHOOK_SECRET;
 
-  // تحقق التوقيع (إلزامي في الإنتاج). Moyasar يرسل التوقيع في رأس مخصّص.
-  if (secret) {
+  // تحقق التوقيع — إلزامي دائماً إن كان السر مضبوطاً، وإلزامي في الإنتاج بلا استثناء.
+  if (!secret) {
+    if (process.env.NODE_ENV === "production") {
+      console.error("MOYASAR_WEBHOOK_SECRET غير مضبوط في الإنتاج — الـ webhook مرفوض");
+      return NextResponse.json({ error: "webhook_not_configured" }, { status: 500 });
+    }
+    // في التطوير فقط: نكمل بدون تحقق التوقيع
+  } else {
     const sig = req.headers.get("x-moyasar-signature") || "";
     const expected = crypto.createHmac("sha256", secret).update(raw).digest("hex");
     const a = Buffer.from(sig);

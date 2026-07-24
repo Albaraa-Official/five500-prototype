@@ -41,31 +41,51 @@ export async function POST(req) {
   const userId = getSessionUserId();
 
   try {
-    const order = await prisma.order.create({
-      data: {
-        userId: userId || null,
-        branchId: DEFAULT_BRANCH,
-        status: "pending_payment",
-        subtotalHalalas: priced.subtotalHalalas,
-        discountHalalas: priced.discountHalalas,
-        discountCode: priced.discountCode,
-        vatHalalas: priced.vatHalalas,
-        totalHalalas: priced.totalHalalas,
-        customerName: parsed.data.customerName,
-        customerPhone: phone,
-        plate: parsed.data.plate || null,
-        orderType: parsed.data.orderType || "pickup",
-        notes: parsed.data.notes || null,
-        items: {
-          create: priced.lines.map((l) => ({
-            productId: l.productId,
-            size: l.size,
-            qty: l.qty,
-            unitPriceHalalas: l.unitPriceHalalas,
-          })),
+    const order = await prisma.$transaction(async (tx) => {
+      // زيادة ذرية لعداد الخصم — يمنع Race Condition على maxUses
+      if (priced.discountCode) {
+        const dc = await tx.discountCode.findUnique({
+          where: { code: priced.discountCode },
+          select: { active: true, maxUses: true, uses: true, expiresAt: true },
+        });
+        if (!dc || !dc.active || (dc.expiresAt && dc.expiresAt < new Date()) ||
+            (dc.maxUses != null && dc.uses >= dc.maxUses)) {
+          const err = new Error("كود الخصم استُنفد أو انتهت صلاحيته");
+          err.code = "DISCOUNT_EXHAUSTED";
+          throw err;
+        }
+        await tx.discountCode.update({
+          where: { code: priced.discountCode },
+          data: { uses: { increment: 1 } },
+        });
+      }
+
+      return tx.order.create({
+        data: {
+          userId: userId || null,
+          branchId: DEFAULT_BRANCH,
+          status: "pending_payment",
+          subtotalHalalas: priced.subtotalHalalas,
+          discountHalalas: priced.discountHalalas,
+          discountCode: priced.discountCode,
+          vatHalalas: priced.vatHalalas,
+          totalHalalas: priced.totalHalalas,
+          customerName: parsed.data.customerName,
+          customerPhone: phone,
+          plate: parsed.data.plate || null,
+          orderType: parsed.data.orderType || "pickup",
+          notes: parsed.data.notes || null,
+          items: {
+            create: priced.lines.map((l) => ({
+              productId: l.productId,
+              size: l.size,
+              qty: l.qty,
+              unitPriceHalalas: l.unitPriceHalalas,
+            })),
+          },
         },
-      },
-      select: { id: true, totalHalalas: true, status: true },
+        select: { id: true, totalHalalas: true, status: true },
+      });
     });
 
     return NextResponse.json({
@@ -74,6 +94,9 @@ export async function POST(req) {
       status: order.status,
     });
   } catch (err) {
+    if (err.code === "DISCOUNT_EXHAUSTED") {
+      return NextResponse.json({ error: "discount_exhausted" }, { status: 409 });
+    }
     console.error("create order failed:", err);
     return NextResponse.json({ error: "internal_error" }, { status: 500 });
   }

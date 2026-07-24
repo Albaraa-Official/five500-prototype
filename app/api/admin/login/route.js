@@ -8,8 +8,11 @@ export async function GET() {
 }
 
 export async function POST(req) {
-  // حد محاولات ضد التخمين — 5 محاولات كل 5 دقائق
-  const rl = rateLimit("admin-login", 5, 5 * 60 * 1000);
+  // حد محاولات ضد التخمين — 5 محاولات لكل IP كل 5 دقائق
+  const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
+    || req.headers.get("x-real-ip")
+    || "unknown";
+  const rl = rateLimit(`admin-login:${ip}`, 5, 5 * 60 * 1000);
   if (!rl.ok) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
 
   let body;
