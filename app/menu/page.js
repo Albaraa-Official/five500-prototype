@@ -17,7 +17,7 @@ function MenuInner() {
   if (q.trim()) list = list.filter((p) => p.name.includes(q.trim()));
 
   return (
-    <div className="app">
+    <div className="app menu">
       <header className="pad menu-head reveal">
         <h1 className="display">المنيو</h1>
         <p className="muted">اختر صنفك المفضّل من فايف هاندرد</p>

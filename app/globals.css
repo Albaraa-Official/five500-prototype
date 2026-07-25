@@ -128,12 +128,18 @@ select:focus-visible,
   border-radius: inherit;
 }
 
-/* ---------- Desktop: show the site inside a floating phone ---------- */
+/* ---------- Site shell ----------
+   Below 481px: a true single-screen mobile app (fixed-height frame with its
+   own internal scroll region, exactly the experience this app was designed
+   around from the start — untouched here).
+   481px and up: a REAL responsive website — no phone bezel/notch, the whole
+   document scrolls normally, and the header sticks to the top like any
+   ordinary site nav. This is the default/base behavior below; the mobile
+   frame is the special case, scoped entirely inside the max-480 query. */
 .stage {
   min-height: 100dvh;
   width: 100%;
   display: flex;
-  align-items: center;
   justify-content: center;
   background:
     radial-gradient(1200px 700px at 80% -10%, rgba(124, 77, 190, 0.22), transparent 60%),
@@ -145,35 +151,24 @@ select:focus-visible,
   position: relative;
   display: flex;
   flex-direction: column;
-  width: var(--app-max);
-  height: 924px;
-  max-height: 96dvh;
+  width: 100%;
+  /* Fluid, not a single jump: a phone-in-hand width right above the true
+     mobile cutoff, growing smoothly up to a real desktop content width —
+     no dead zone (e.g. tablets) stuck at the old 440px mobile column. */
+  max-width: min(1180px, 94vw);
+  min-height: 100dvh;
   background: var(--bg);
-  border-radius: 54px;
-  border: 1px solid var(--hairline-strong);
-  box-shadow:
-    0 0 0 11px #141416,
-    0 0 0 13px #050506,
-    0 50px 120px -30px rgba(0, 0, 0, 0.9),
-    var(--glow-purple);
-  overflow: hidden;
 }
 
 .phone .app-scroll {
   position: relative;
   flex: 1;
   min-height: 0;
-  overflow-y: auto;
-  overflow-x: hidden;
-  scrollbar-width: none;
-}
-.phone .app-scroll::-webkit-scrollbar {
-  display: none;
 }
 
-/* Film-grain overlay — subtle premium texture over everything */
+/* Film-grain overlay — subtle premium texture over the whole viewport */
 .grain {
-  position: absolute;
+  position: fixed;
   inset: 0;
   z-index: 150;
   pointer-events: none;
@@ -182,18 +177,9 @@ select:focus-visible,
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
-/* Dynamic-island style notch */
+/* Dynamic-island notch — a mobile-only affectation, hidden by default */
 .notch {
-  position: absolute;
-  top: 12px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 116px;
-  height: 30px;
-  background: #050506;
-  border-radius: 20px;
-  z-index: 90;
-  pointer-events: none;
+  display: none;
 }
 
 @media (max-width: 480px) {
@@ -202,15 +188,37 @@ select:focus-visible,
     align-items: stretch;
   }
   .phone {
-    width: 100%;
+    max-width: none;
     height: 100dvh;
-    max-height: none;
+    min-height: 0;
     border-radius: 0;
     border: none;
     box-shadow: none;
+    overflow: hidden;
+  }
+  .phone .app-scroll {
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-width: none;
+  }
+  .phone .app-scroll::-webkit-scrollbar {
+    display: none;
+  }
+  .grain {
+    position: absolute;
   }
   .notch {
-    display: none;
+    display: block;
+    position: absolute;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 116px;
+    height: 30px;
+    background: #050506;
+    border-radius: 20px;
+    z-index: 90;
+    pointer-events: none;
   }
 }
 
@@ -221,13 +229,35 @@ select:focus-visible,
   position: relative;
 }
 
+/* 641px+: cap single-column pages (forms, cart, account, orders, legal
+   text, product detail…) to a sane reading/form width and center them —
+   otherwise a single phone-number input or a line of body text would
+   stretch edge-to-edge across a wide desktop window, which reads as
+   broken rather than "responsive". Grid-based pages (home, menu) opt out
+   via .home/.menu since they're designed to use the full wide column. */
+@media (min-width: 641px) {
+  .app {
+    max-width: 640px;
+    margin-inline: auto;
+  }
+  .app.home,
+  .app.menu {
+    max-width: none;
+  }
+}
+
 .pad {
   padding-inline: 20px;
 }
 
-/* ---------- Persistent top header (logo center, account+cart grouped) ---------- */
+/* ---------- Persistent top header (logo center, account+cart grouped) ----------
+   481px+: sticks to the top of the real document scroll, like any website
+   nav bar. On true mobile (<=480px) it stays a plain in-flow flex item above
+   the app's own internal scroll region — no sticky needed there since the
+   frame itself never scrolls past it. */
 .gheader {
-  position: relative;
+  position: sticky;
+  top: 0;
   flex-shrink: 0;
   z-index: 95;
   display: flex;
@@ -241,6 +271,11 @@ select:focus-visible,
 @media (min-width: 481px) {
   .gheader {
     padding-top: 26px;
+  }
+}
+@media (max-width: 480px) {
+  .gheader {
+    position: relative;
   }
 }
 .gheader-icons {
@@ -844,6 +879,17 @@ select:focus-visible,
   grid-template-columns: 1fr 1fr;
   gap: 14px;
 }
+/* Wider screens: reflow into more, sensibly-sized columns instead of just
+   stretching two giant cards across the whole width. */
+@media (min-width: 640px) {
+  .menu-grid {
+    grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+    gap: 18px;
+  }
+  .gcard-feature {
+    grid-column: span 2;
+  }
+}
 .menu-list {
   display: flex;
   flex-direction: column;
@@ -1387,6 +1433,18 @@ select:focus-visible,
 .checkoutbar,
 .actionbar {
   bottom: max(18px, calc(18px + env(safe-area-inset-bottom, 0px))) !important;
+}
+/* 481px+: the page now uses normal document scroll and .phone grows to fit
+   its content (no fixed frame height), so these bars must anchor to the
+   viewport itself (fixed) instead of the old absolute-within-the-phone-frame
+   positioning — otherwise they'd drift to the bottom of the whole page
+   instead of staying visible while scrolling. True mobile (<=480px) keeps
+   the original absolute behavior since the frame there IS the viewport. */
+@media (min-width: 481px) {
+  .checkoutbar,
+  .actionbar {
+    position: fixed !important;
+  }
 }
 
 /* ============================================================
