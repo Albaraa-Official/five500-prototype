@@ -1,0 +1,152 @@
+// FIVE 500 — Prisma schema
+// ملاحظة: التطوير المحلي على SQLite. للإنتاج: غيّر provider إلى "postgresql".
+// كل المبالغ المالية بالهللات (عدد صحيح) لتفادي أخطاء الفاصلة العائمة.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Branch {
+  id        String   @id @default(cuid())
+  name      String
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  orders    Order[]
+}
+
+model Product {
+  id         String         @id
+  name       String
+  category   String
+  img        String?
+  emoji      String?
+  calories   Int?
+  tag        String?
+  description String?
+  active     Boolean        @default(true)
+  createdAt  DateTime       @default(now())
+  prices     ProductPrice[]
+  orderItems OrderItem[]
+}
+
+model ProductPrice {
+  id                String  @id @default(cuid())
+  productId         String
+  size              String  // "reg" | "large"
+  priceHalalas      Int
+  loyverseVariantId String? // معرّف الـ variant المطابق في Loyverse (لإرسال بنود الطلب بدقة)
+  product           Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, size])
+}
+
+model User {
+  id        String   @id @default(cuid())
+  phoneE164 String   @unique
+  name      String?
+  createdAt DateTime @default(now())
+  orders    Order[]
+}
+
+model OtpCode {
+  id        String   @id @default(cuid())
+  phoneE164 String
+  codeHash  String
+  expiresAt DateTime
+  attempts  Int      @default(0)
+  consumed  Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([phoneE164])
+}
+
+model Order {
+  id             String      @id @default(cuid())
+  userId         String?
+  branchId       String
+  status         String      @default("pending_payment")
+  // pending_payment | paid | preparing | ready | completed | cancelled | payment_failed
+  subtotalHalalas Int
+  discountHalalas Int         @default(0)
+  discountCode    String?
+  vatHalalas      Int
+  totalHalalas    Int
+  customerName   String?
+  customerPhone  String?
+  plate          String?
+  orderType      String      @default("pickup") // "pickup" | "delivery"
+  notes          String?
+  idempotencyKey String?     @unique // مفتاح تكرار — يمنع إنشاء طلب مكرر عند إعادة الإرسال (زر الرجوع)
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  user           User?       @relation(fields: [userId], references: [id])
+  branch         Branch      @relation(fields: [branchId], references: [id])
+  items          OrderItem[]
+  payment        Payment?
+}
+
+model OrderItem {
+  id              String  @id @default(cuid())
+  orderId         String
+  productId       String
+  size            String
+  qty             Int
+  unitPriceHalalas Int    // snapshot السعر وقت الطلب
+  order           Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product         Product @relation(fields: [productId], references: [id])
+}
+
+model DiscountCode {
+  id         String    @id @default(cuid())
+  code       String    @unique
+  type       String    // "percent" | "fixed"
+  value      Int       // percent: 1-100 | fixed: هللات
+  active     Boolean   @default(true)
+  maxUses    Int?      // null = بلا حد
+  uses       Int       @default(0)
+  expiresAt  DateTime?
+  createdAt  DateTime  @default(now())
+}
+
+model Payment {
+  id            String   @id @default(cuid())
+  orderId       String   @unique
+  provider      String   @default("moyasar")
+  providerRef   String?
+  status        String   @default("initiated") // initiated | paid | failed
+  amountHalalas Int
+  createdAt     DateTime @default(now())
+  order         Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+}
+
+// إعدادات التكاملات الخارجية (POS/دفع/تجارة). الأسرار (tokens/keys) لا تُخزَّن هنا أبداً —
+// فقط إعدادات غير حساسة (enabled، storeId، ...) — الأسرار تُقرأ من Environment Variables حصراً.
+model IntegrationSetting {
+  id            String    @id @default(cuid())
+  key           String    @unique // "loyverse" | "moyasar" | ...
+  enabled       Boolean   @default(false)
+  config        Json?     // إعدادات غير حساسة خاصة بالتكامل
+  status        String    @default("unknown") // unknown | connected | error
+  lastError     String?
+  lastCheckedAt DateTime?
+  updatedAt     DateTime  @updatedAt
+  createdAt     DateTime  @default(now())
+}
+
+// سجل محاولات إرسال الطلبات لأنظمة الـ POS الخارجية — للتتبع وإعادة المحاولة اليدوية عند الحاجة.
+model IntegrationLog {
+  id          String   @id @default(cuid())
+  integration String   // "loyverse"
+  orderId     String?
+  status      String   // success | failed
+  attempts    Int      @default(1)
+  message     String?
+  createdAt   DateTime @default(now())
+
+  @@index([integration, createdAt])
+}

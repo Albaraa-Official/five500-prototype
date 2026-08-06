@@ -7,16 +7,45 @@ import { money } from "@/data/menu";
 
 export default function CheckoutPage() {
   const router = useRouter();
-  const { subtotal, count, clear } = useCart();
+  const { items, subtotal, count, clear } = useCart();
   const [plateLetters, setPlateLetters] = useState("");
   const [plateNumbers, setPlateNumbers] = useState("");
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
+  const [notes, setNotes] = useState("");
   const [pay, setPay] = useState("apple");
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
+  const [discountInput, setDiscountInput] = useState("");
+  const [discount, setDiscount] = useState(null); // { code, discountHalalas }
+  const [discountChecking, setDiscountChecking] = useState(false);
+  const [discountError, setDiscountError] = useState("");
 
-  const tax = Math.round(subtotal * 0.15);
-  const total = subtotal + tax;
+  // ملاحظة: هذه الأرقام للعرض فقط — الإجمالي المعتمد يُحسب في السيرفر.
+  const subtotalHalalas = Math.round(subtotal * 100);
+  const discountHalalas = discount ? discount.discountHalalas : 0;
+  const taxableHalalas = subtotalHalalas - discountHalalas;
+  const tax = Math.round(taxableHalalas * 0.15);
+  const total = Math.round((taxableHalalas + tax) / 100);
+
+  const applyDiscount = async () => {
+    if (!discountInput.trim()) return;
+    setDiscountChecking(true);
+    setDiscountError("");
+    try {
+      const res = await fetch("/api/discounts/validate", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: discountInput.trim(), subtotalHalalas }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setDiscountError("كود غير صالح أو منتهي."); setDiscount(null); }
+      else setDiscount(data);
+    } catch {
+      setDiscountError("تعذّر التحقق من الكود.");
+    } finally {
+      setDiscountChecking(false);
+    }
+  };
 
   const onPlateLetters = (e) => {
     const v = e.target.value
@@ -30,13 +59,54 @@ export default function CheckoutPage() {
     setPlateNumbers(v);
   };
 
-  const submit = () => {
-    if (!name.trim() || !phone.trim()) return;
+  const IDEM_KEY_STORAGE = "f500-order-idem-key";
+
+  // مفتاح تكرار ثابت لكل جلسة إتمام طلب — يبقى في sessionStorage عبر زر الرجوع
+  // لمنع إنشاء طلب مكرر، ويُمسح بعد نجاح الطلب حتى لا يمنع الطلب الشرعي التالي.
+  const getIdempotencyKey = () => {
+    if (typeof window === "undefined") return null;
+    let key = window.sessionStorage.getItem(IDEM_KEY_STORAGE);
+    if (!key) {
+      key = crypto.randomUUID();
+      window.sessionStorage.setItem(IDEM_KEY_STORAGE, key);
+    }
+    return key;
+  };
+
+  const submit = async () => {
+    if (!name.trim() || !phone.trim() || items.length === 0) return;
     setSubmitting(true);
-    setTimeout(() => {
-      clear();
-      router.push("/success");
-    }, 900);
+    setError("");
+    try {
+      const plate = [plateLetters, plateNumbers].filter(Boolean).join(" ").trim();
+      const idempotencyKey = getIdempotencyKey();
+      const res = await fetch("/api/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          items: items.map((i) => ({ productId: i.id, size: i.size, qty: i.qty })),
+          customerName: name.trim(),
+          customerPhone: phone.trim(),
+          plate: plate || null,
+          discountCode: discount?.code || null,
+          notes: notes.trim() || null,
+          ...(idempotencyKey ? { idempotencyKey } : {}),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data?.message || "تعذّر إنشاء الطلب. تحقّق من البيانات وحاول مجدداً.");
+        setSubmitting(false);
+        return;
+      }
+      // نجح الطلب — امسح مفتاح التكرار حتى لا يمنع الطلب الشرعي التالي
+      if (typeof window !== "undefined") window.sessionStorage.removeItem(IDEM_KEY_STORAGE);
+      // إلى الدفع مع معرّف الطلب — الإجمالي المعتمد يأتي من السيرفر هناك.
+      router.push(`/payment?order=${data.orderId}`);
+    } catch (e) {
+      setError("تعذّر الاتصال بالخادم. حاول مجدداً.");
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -62,6 +132,7 @@ export default function CheckoutPage() {
             placeholder="ABC"
             value={plateLetters}
             onChange={onPlateLetters}
+            aria-label="حروف لوحة السيارة"
           />
           <span className="plate-sep" />
           <input
@@ -70,6 +141,7 @@ export default function CheckoutPage() {
             value={plateNumbers}
             onChange={onPlateNumbers}
             inputMode="numeric"
+            aria-label="أرقام لوحة السيارة"
           />
           <div className="plate-ksa">
             <span>KSA</span>
@@ -88,6 +160,7 @@ export default function CheckoutPage() {
             placeholder="اسمك الكامل"
             value={name}
             onChange={(e) => setName(e.target.value)}
+            aria-label="الاسم الكامل"
           />
         </div>
       </div>
@@ -104,6 +177,22 @@ export default function CheckoutPage() {
             inputMode="numeric"
             dir="ltr"
             style={{ textAlign: "left" }}
+            aria-label="رقم الجوال"
+          />
+        </div>
+      </div>
+
+      {/* Notes */}
+      <div className="pad">
+        <div className="block-head">ملاحظات <span className="opt">(اختياري)</span></div>
+        <div className="field card reveal d3" style={{ height: "auto", alignItems: "flex-start", padding: "12px 16px" }}>
+          <textarea
+            placeholder="أي طلبات خاصة؟ مثلاً: بدون بصل"
+            value={notes}
+            onChange={(e) => setNotes(e.target.value.slice(0, 300))}
+            rows={2}
+            aria-label="ملاحظات الطلب (اختياري)"
+            style={{ flex: 1, background: "none", border: "none", outline: "none", color: "var(--text)", fontFamily: "inherit", fontSize: 14, fontWeight: 600, resize: "none" }}
           />
         </div>
       </div>
@@ -125,15 +214,51 @@ export default function CheckoutPage() {
         </div>
       </div>
 
+      {/* Discount code */}
+      <div className="pad">
+        <div className="block-head">كود الخصم <span className="opt">(اختياري)</span></div>
+        <div style={{ display: "flex", gap: 8 }}>
+          <div className="field card" style={{ flex: 1 }} dir="ltr">
+            <input
+              placeholder="CODE"
+              value={discountInput}
+              onChange={(e) => { setDiscountInput(e.target.value); setDiscountError(""); }}
+              style={{ textAlign: "left", textTransform: "uppercase" }}
+              disabled={!!discount}
+              aria-label="كود الخصم"
+            />
+          </div>
+          {discount ? (
+            <button className="btn btn-ghost" onClick={() => { setDiscount(null); setDiscountInput(""); }} style={{ height: 56, padding: "0 16px", color: "#e05252" }}>إزالة</button>
+          ) : (
+            <button className="btn btn-primary" onClick={applyDiscount} disabled={discountChecking || !discountInput.trim()} style={{ height: 56, padding: "0 20px" }}>
+              {discountChecking ? "..." : "تطبيق"}
+            </button>
+          )}
+        </div>
+        {discountError && <p style={{ color: "#e05252", fontSize: 12.5, fontWeight: 700, marginTop: 6 }}>⚠️ {discountError}</p>}
+        {discount && <p style={{ color: "#46c37b", fontSize: 12.5, fontWeight: 700, marginTop: 6 }}>✓ تم تطبيق الكود {discount.code}</p>}
+      </div>
+
       {/* Summary */}
       <div className="pad">
         <div className="summary card reveal d5">
           <Row label={`المجموع (${count})`} value={money(subtotal)} />
-          <Row label="ضريبة (15%)" value={money(tax)} />
+          {discount && <Row label="الخصم" value={`- ${money(discountHalalas / 100)}`} />}
+          <Row label="ضريبة (15%)" value={money(tax / 100)} />
           <div className="divider" />
           <Row label="الإجمالي" value={money(total)} big />
         </div>
       </div>
+
+      {/* Error */}
+      {error && (
+        <div className="pad">
+          <div style={{ background: "rgba(224,82,82,0.12)", color: "#e05252", border: "1px solid rgba(224,82,82,0.3)", borderRadius: 14, padding: "12px 16px", fontSize: 13.5, fontWeight: 700 }}>
+            ⚠️ {error}
+          </div>
+        </div>
+      )}
 
       {/* Submit */}
       <div className="pad" style={{ marginTop: 10 }}>

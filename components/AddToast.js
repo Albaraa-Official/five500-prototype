@@ -1,4 +1,5 @@
 "use client";
+import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { useCart } from "@/context/CartContext";
 import { I } from "./Icons";
@@ -24,7 +25,7 @@ export default function AddToast() {
     <div className={`atoast ${show ? "in" : "out"}`} aria-live="polite">
       <div className="atoast-media">
         {item.img ? (
-          <img src={item.img} alt={item.name} />
+          <Image src={item.img} alt={item.name} width={46} height={46} style={{ objectFit: "cover" }} />
         ) : (
           <span className="atoast-emoji">{item.emoji || "🍔"}</span>
         )}

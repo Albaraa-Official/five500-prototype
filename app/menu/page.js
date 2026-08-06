@@ -3,19 +3,21 @@ import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { GridCard } from "@/components/ProductCard";
 import { I } from "@/components/Icons";
-import { categories, products } from "@/data/menu";
+import { categories } from "@/data/menu";
+import { useCatalog } from "@/context/CatalogContext";
 
 function MenuInner() {
   const sp = useSearchParams();
   const initial = sp.get("cat") || "all";
   const [cat, setCat] = useState(initial);
   const [q, setQ] = useState("");
+  const { products } = useCatalog();
 
   let list = cat === "all" ? products : products.filter((p) => p.cat === cat);
   if (q.trim()) list = list.filter((p) => p.name.includes(q.trim()));
 
   return (
-    <div className="app">
+    <div className="app menu">
       <header className="pad menu-head reveal">
         <h1 className="display">المنيو</h1>
         <p className="muted">اختر صنفك المفضّل من فايف هاندرد</p>
@@ -28,6 +30,7 @@ function MenuInner() {
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder="ابحث عن برجر، فرايز، صوص…"
+            aria-label="ابحث في المنيو"
           />
         </div>
       </div>
@@ -56,7 +59,11 @@ function MenuInner() {
         ))}
       </div>
       {list.length === 0 && (
-        <div className="pad empty muted">ما لقينا نتائج… جرّب كلمة ثانية</div>
+        <div className="pad empty reveal">
+          <span className="empty-ic">🔍</span>
+          <b>ما لقينا نتائج</b>
+          <p className="muted">جرّب كلمة ثانية أو تصفّح قسم مختلف</p>
+        </div>
       )}
 
       <style jsx>{`
@@ -108,8 +115,23 @@ function MenuInner() {
         }
         .empty {
           text-align: center;
-          padding: 50px 0;
-          font-weight: 600;
+          padding: 50px 20px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+        }
+        .empty-ic {
+          font-size: 38px;
+          margin-bottom: 10px;
+          opacity: 0.8;
+        }
+        .empty b {
+          font-size: 16px;
+          font-weight: 800;
+        }
+        .empty p {
+          font-size: 13.5px;
+          margin-top: 5px;
         }
       `}</style>
     </div>

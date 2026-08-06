@@ -1,4 +1,5 @@
 "use client";
+import Image from "next/image";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -42,7 +43,7 @@ export default function ProductPage({ params }) {
         </div>
 
         {p.img ? (
-          <img src={p.img} alt={p.name} className="stage-burger" />
+          <Image src={p.img} alt={p.name} fill style={{ objectFit: "cover" }} className="stage-burger" />
         ) : (
           <div className="stage-emoji">{p.emoji || "🍔"}</div>
         )}
@@ -95,9 +96,9 @@ export default function ProductPage({ params }) {
         <div className="block qty-block">
           <span>الكمية</span>
           <div className="stepper">
-            <button onClick={() => setQty(Math.max(1, qty - 1))}>−</button>
-            <span className="qv">{qty}</span>
-            <button className="plus" onClick={() => setQty(qty + 1)}>+</button>
+            <button onClick={() => setQty(Math.max(1, qty - 1))} aria-label="تقليل الكمية">−</button>
+            <span className="qv" aria-live="polite">{qty}</span>
+            <button className="plus" onClick={() => setQty(qty + 1)} aria-label="زيادة الكمية">+</button>
           </div>
         </div>
       </div>

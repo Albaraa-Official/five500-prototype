@@ -1,5 +1,6 @@
 "use client";
-import { useRef, useState } from "react";
+import Image from "next/image";
+import { memo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { I } from "./Icons";
@@ -8,7 +9,7 @@ import { money } from "@/data/menu";
 
 function Thumb({ p, className, emojiClass }) {
   if (p.img) {
-    return <img src={p.img} alt={p.name} className={className} loading="lazy" />;
+    return <Image src={p.img} alt={p.name} width={200} height={200} style={{ objectFit: "cover" }} className={className} />;
   }
   return (
     <div
@@ -31,7 +32,7 @@ function AddBtn({ className, onAdd }) {
     setTimeout(() => setPop(false), 500);
   };
   return (
-    <button className={`${className} ${pop ? "add-pop" : ""}`} onClick={handle} aria-label="أضف">
+    <button className={`${className} ${pop ? "add-pop" : ""}`} onClick={handle} aria-label={pop ? "تمت الإضافة" : "أضف للسلة"}>
       {pop ? <I.check style={{ width: 16, height: 16 }} /> : <I.plus />}
     </button>
   );
@@ -74,6 +75,8 @@ function TapLink({ href, className, style, children }) {
       onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}
       onClick={onClick}
+      role="link"
+      tabIndex={0}
     >
       {children}
     </div>
@@ -81,7 +84,7 @@ function TapLink({ href, className, style, children }) {
 }
 
 /* Horizontal list row (menu list) */
-export function ProductRow({ p, delay = 0 }) {
+export const ProductRow = memo(function ProductRow({ p, delay = 0 }) {
   const { add } = useCart();
   return (
     <TapLink href={`/product/${p.id}`} className="prow reveal" style={{ animationDelay: `${delay}s` }}>
@@ -103,10 +106,10 @@ export function ProductRow({ p, delay = 0 }) {
       <AddBtn className="prow-add" onAdd={(rect) => add(p, "reg", 1, rect)} />
     </TapLink>
   );
-}
+});
 
 /* Grid card (menu bento) */
-export function GridCard({ p, feature = false, delay = 0 }) {
+export const GridCard = memo(function GridCard({ p, feature = false, delay = 0 }) {
   const { add } = useCart();
   return (
     <TapLink
@@ -131,10 +134,10 @@ export function GridCard({ p, feature = false, delay = 0 }) {
       </div>
     </TapLink>
   );
-}
+});
 
 /* Tall featured card (home carousel) */
-export function FeatureCard({ p, delay = 0 }) {
+export const FeatureCard = memo(function FeatureCard({ p, delay = 0 }) {
   const { add } = useCart();
   return (
     <TapLink href={`/product/${p.id}`} className="fcard reveal" style={{ animationDelay: `${delay}s` }}>
@@ -151,4 +154,4 @@ export function FeatureCard({ p, delay = 0 }) {
       </div>
     </TapLink>
   );
-}
+});

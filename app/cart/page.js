@@ -1,4 +1,5 @@
 "use client";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { I } from "@/components/Icons";
@@ -23,7 +24,7 @@ export default function CartPage() {
 
       {count === 0 ? (
         <div className="empty reveal d1">
-          <img src="/brand-astronaut.jpg" alt="" className="empty-mascot" />
+          <Image src="/brand-astronaut.jpg" alt="" width={130} height={146} className="empty-mascot" />
           <h2>سلّتك فاضية</h2>
           <p className="muted">رائد فايف هاندرد جاهز… أضف ألذّ برجر وابدأ رحلتك</p>
           <Link href="/menu" className="btn btn-primary" style={{ padding: "0 30px", marginTop: 20 }}>
@@ -36,7 +37,7 @@ export default function CartPage() {
             {items.map((it, i) => (
               <div className="ci reveal" style={{ animationDelay: `${0.05 * i}s` }} key={it.key}>
                 <div className="ci-img">
-                  {it.img ? <img src={it.img} alt={it.name} /> : <span className="ci-emoji">{it.emoji || "🍔"}</span>}
+                  {it.img ? <Image src={it.img} alt={it.name} width={96} height={96} style={{ objectFit: "cover" }} /> : <span className="ci-emoji">{it.emoji || "🍔"}</span>}
                 </div>
                 <div className="ci-body">
                   <h3>{it.name}</h3>
@@ -46,22 +47,13 @@ export default function CartPage() {
                 <div className="ci-actions">
                   <button className="ci-del" onClick={() => remove(it.key)} aria-label="حذف"><I.trash /></button>
                   <div className="ci-stepper">
-                    <button className="ci-plus" onClick={() => setQty(it.key, it.qty + 1)}>+</button>
-                    <span className="ci-qv">{it.qty}</span>
-                    <button className="ci-minus" onClick={() => setQty(it.key, it.qty - 1)}>−</button>
+                    <button className="ci-plus" onClick={() => setQty(it.key, it.qty + 1)} aria-label="زيادة الكمية">+</button>
+                    <span className="ci-qv" aria-live="polite">{it.qty}</span>
+                    <button className="ci-minus" onClick={() => setQty(it.key, it.qty - 1)} aria-label="تقليل الكمية">−</button>
                   </div>
                 </div>
               </div>
             ))}
-          </div>
-
-          {/* Promo code */}
-          <div className="pad">
-            <div className="promo-in card reveal">
-              <span>🎁</span>
-              <input placeholder="كود الخصم" />
-              <button className="promo-apply">تطبيق</button>
-            </div>
           </div>
 
           {/* Summary */}

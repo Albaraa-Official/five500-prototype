@@ -1,13 +1,94 @@
 "use client";
+import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { I } from "@/components/Icons";
+import { formatSAR } from "@/lib/money";
+import QRCode from "qrcode";
 
-export default function SuccessPage() {
-  const orderNo = "F500-2481";
+const STATUS_STEP = { paid: 0, preparing: 1, ready: 2, completed: 2 };
+
+function SuccessInner() {
+  const sp = useSearchParams();
+  const orderId = sp.get("order");
+  const [order, setOrder] = useState(null);
+  const [zatcaQrImg, setZatcaQrImg] = useState(null);
+  const [loadError, setLoadError] = useState(false);
+
+  useEffect(() => {
+    if (!order?.zatcaQr) {
+      setZatcaQrImg(null);
+      return;
+    }
+    let alive = true;
+    QRCode.toDataURL(order.zatcaQr, { margin: 1, width: 160 })
+      .then((url) => alive && setZatcaQrImg(url))
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [order?.zatcaQr]);
+
+  useEffect(() => {
+    if (!orderId) return;
+    let alive = true;
+    let failCount = 0;
+    const poll = () =>
+      fetch(`/api/orders/${orderId}`)
+        .then((r) => r.json())
+        .then((d) => {
+          if (!alive) return;
+          if (d.order) { setOrder(d.order); setLoadError(false); failCount = 0; }
+          else { failCount += 1; if (failCount >= 2) setLoadError(true); }
+        })
+        .catch((e) => {
+          console.error("order poll failed", e);
+          if (!alive) return;
+          failCount += 1;
+          if (failCount >= 2) setLoadError(true);
+        });
+    poll();
+    // تتبّع حيّ: نحدّث الحالة كل 8 ثوانٍ حتى يكتمل الطلب
+    const t = setInterval(() => {
+      if (!alive) return;
+      poll();
+    }, 8000);
+    return () => {
+      alive = false;
+      clearInterval(t);
+    };
+  }, [orderId]);
+
+  // رقم طلب مختصر مقروء من معرّف cuid
+  const orderNo = order ? `F500-${order.id.slice(-6).toUpperCase()}` : "…";
+  const step = order ? (STATUS_STEP[order.status] ?? 0) : 0;
+
+  if (!orderId) {
+    return (
+      <div className="app pad" style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "70vh", textAlign: "center", gap: 14 }}>
+        <span style={{ fontSize: 48 }}>🧾</span>
+        <h1 style={{ fontSize: 20, fontWeight: 900 }}>لا يوجد طلب لعرضه</h1>
+        <p className="muted" style={{ fontSize: 14 }}>ابدأ من السلة لإتمام طلب جديد.</p>
+        <Link href="/menu" className="btn btn-primary" style={{ padding: "0 28px", height: 48, display: "inline-flex", alignItems: "center" }}>تصفّح المنيو</Link>
+      </div>
+    );
+  }
+
+  if (loadError && !order) {
+    return (
+      <div className="app pad" style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "70vh", textAlign: "center", gap: 14 }}>
+        <span style={{ fontSize: 48 }}>😕</span>
+        <h1 style={{ fontSize: 20, fontWeight: 900 }}>تعذّر تحميل حالة طلبك</h1>
+        <p className="muted" style={{ fontSize: 14 }}>تحقق من اتصالك بالإنترنت وحاول مجدداً.</p>
+        <button className="btn btn-primary" onClick={() => window.location.reload()} style={{ padding: "0 28px", height: 48 }}>حاول مجدداً</button>
+        <Link href="/account" className="btn btn-ghost" style={{ padding: "0 28px", height: 48, display: "inline-flex", alignItems: "center" }}>عرض طلباتي</Link>
+      </div>
+    );
+  }
+
   return (
     <div className="app success">
       <div className="s-bg glowbg" />
-
       <div className="s-center">
         <div className="check-wrap">
           <span className="ring r1" />
@@ -27,22 +108,40 @@ export default function SuccessPage() {
             <span className="muted">رقم الطلب</span>
             <b className="price">{orderNo}</b>
           </div>
+          {order ? (
+            <div className="oc-row" style={{ marginTop: 8 }}>
+              <span className="muted">الإجمالي</span>
+              <b className="price">{formatSAR(order.totalHalalas)}</b>
+            </div>
+          ) : (
+            <div className="oc-row" style={{ marginTop: 8 }} aria-hidden>
+              <span className="muted">الإجمالي</span>
+              <div className="skeleton skeleton-text" style={{ width: 70 }} />
+            </div>
+          )}
           <div className="oc-divider" />
           <div className="oc-status">
             <Step done label="تم التأكيد" icon="✅" />
-            <Line done />
-            <Step active label="قيد التحضير" icon="👨‍🍳" />
-            <Line />
-            <Step label="في الطريق" icon="🛵" />
+            <Line done={step >= 1} />
+            <Step done={step >= 1} active={step === 1} label="قيد التحضير" icon="👨‍🍳" />
+            <Line done={step >= 2} />
+            <Step done={step >= 2} active={step === 2} label="جاهز للاستلام" icon="🛍️" />
           </div>
           <div className="eta">
-            <I.clock /> يصل خلال <b><span className="ltr">25–35</span> دقيقة</b>
+            <I.clock /> جاهز خلال <b><span className="ltr">15–25</span> دقيقة</b>
           </div>
         </div>
 
+        {zatcaQrImg && (
+          <div className="zatca-card glass reveal d3">
+            <span className="zatca-label muted">فاتورة ضريبية مبسطة</span>
+            <img src={zatcaQrImg} alt="ZATCA QR" width={160} height={160} />
+          </div>
+        )}
+
         <div className="s-actions reveal d4">
           <Link href="/" className="btn btn-primary btn-block">العودة للرئيسية</Link>
-          <button className="btn btn-ghost btn-block" style={{ marginTop: 10 }}>تتبّع الطلب</button>
+          <Link href="/account" className="btn btn-ghost btn-block" style={{ marginTop: 10 }}>طلباتي</Link>
         </div>
       </div>
 
@@ -65,6 +164,8 @@ export default function SuccessPage() {
         .eta { display: flex; align-items: center; justify-content: center; gap: 7px; margin-top: 20px; font-size: 13.5px; font-weight: 600; color: var(--text-2); background: var(--surface); border: 1px solid var(--hairline); padding: 11px; border-radius: 15px; }
         .eta b { color: var(--text); }
         .s-actions { width: 100%; margin-top: auto; padding-top: 30px; }
+        .zatca-card { width: 100%; border-radius: 24px; padding: 18px; margin-top: 16px; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+        .zatca-label { font-size: 12.5px; font-weight: 700; }
       `}</style>
     </div>
   );
@@ -90,4 +191,12 @@ function Step({ label, icon, done, active }) {
 
 function Line({ done }) {
   return <div style={{ flex: 1, height: 2, marginTop: 22, background: done ? "#2fa862" : "var(--hairline)", borderRadius: 2 }} />;
+}
+
+export default function SuccessPage() {
+  return (
+    <Suspense fallback={<div className="app success" />}>
+      <SuccessInner />
+    </Suspense>
+  );
 }

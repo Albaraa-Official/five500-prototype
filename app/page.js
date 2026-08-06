@@ -1,10 +1,13 @@
 "use client";
 import Link from "next/link";
+import Image from "next/image";
 import { FeatureCard, GridCard } from "@/components/ProductCard";
 import { I } from "@/components/Icons";
-import { categories, products } from "@/data/menu";
+import { categories } from "@/data/menu";
+import { useCatalog } from "@/context/CatalogContext";
 
 export default function Home() {
+  const { products } = useCatalog();
   const featured = products.filter((p) => p.hero || p.tag === "الأكثر طلباً" || p.tag === "المفضّل").slice(0, 5);
   const list = products.filter((p) => ["beef", "chicken"].includes(p.cat)).slice(0, 4);
 
@@ -13,7 +16,7 @@ export default function Home() {
       {/* HERO — simple: strong image + CTA only */}
       <section className="pad">
         <Link href="/menu" className="hero reveal d1">
-          <img src="/scenes/promo-1.jpg" alt="فايف هاندرد" className="hero-bg" />
+          <Image src="/scenes/promo-1.jpg" alt="فايف هاندرد" fill priority style={{ objectFit: "cover" }} className="hero-bg" />
           <div className="hero-scrim" />
           <div className="hero-content">
             <span className="hero-order">
@@ -33,7 +36,7 @@ export default function Home() {
           {categories.slice(1).map((c, i) => (
             <Link href={`/menu?cat=${c.id}`} key={c.id} className="cat reveal" style={{ animationDelay: `${0.05 * i}s` }}>
               <div className="cat-ic">
-                {c.img ? <img src={c.img} alt={c.name} loading="lazy" /> : c.icon}
+                {c.img ? <Image src={c.img} alt={c.name} width={48} height={48} style={{ objectFit: "cover" }} /> : c.icon}
               </div>
               <span>{c.name}</span>
             </Link>
@@ -63,7 +66,7 @@ export default function Home() {
             <p>مع مشروب و بطاطس</p>
             <span className="promo-price">27 ﷼</span>
           </div>
-          <img src="/products/bite-beef.jpg" alt="برجر نص الليل" className="promo-img" loading="lazy" />
+          <Image src="/products/bite-beef.jpg" alt="برجر نص الليل" width={300} height={200} className="promo-img" />
         </Link>
       </section>
 
